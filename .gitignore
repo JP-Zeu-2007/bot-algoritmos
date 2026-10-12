@@ -1,0 +1,15 @@
+# Variables de entorno (NO subir)
+.env
+
+# Entorno virtual de Python
+venv/
+env/
+__pycache__/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Configuración del editor
+.vscode/
+.idea/

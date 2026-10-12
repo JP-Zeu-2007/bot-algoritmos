@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot de Algoritmos — Proyecto Final</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+    <div class="contenedor">
+
+        <!-- ===== ENCABEZADO ===== -->
+        <header class="encabezado">
+            <h1>🤖 Bot de Algoritmos</h1>
+            <p class="subtitulo">Resuelve problemas paso a paso con las 7 etapas</p>
+            <button id="btn-reiniciar" class="btn-reiniciar" title="Reiniciar chat">
+                🔄 Reiniciar
+            </button>
+        </header>
+
+        <!-- ===== ÁREA DE CHAT ===== -->
+        <main id="chat" class="chat">
+            <!-- Los mensajes se insertan aquí dinámicamente -->
+        </main>
+
+        <!-- ===== ÁREA DE ENTRADA ===== -->
+        <footer class="entrada">
+            <input
+                type="text"
+                id="input-mensaje"
+                placeholder="Escribe tu mensaje o tu problema algorítmico..."
+                autocomplete="off"
+            >
+            <button id="btn-enviar" class="btn-enviar">Enviar</button>
+        </footer>
+
+    </div>
+
+    <!-- ===== SCRIPT ===== -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
