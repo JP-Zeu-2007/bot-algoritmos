@@ -2,16 +2,14 @@
 // BOT DE ALGORITMOS - LÓGICA DEL CLIENTE
 // ============================================
 
-// ===== ELEMENTOS DEL DOM =====
 const chat = document.getElementById("chat");
 const input = document.getElementById("input-mensaje");
 const btnEnviar = document.getElementById("btn-enviar");
 const btnReiniciar = document.getElementById("btn-reiniciar");
 
-// ===== ESTADO =====
 let enviando = false;
 
-// ===== CONFIGURAR MARKED (Markdown) =====
+// ===== MARKED =====
 marked.setOptions({
     breaks: true,
     gfm: true,
@@ -25,27 +23,34 @@ marked.setOptions({
     }
 });
 
-// ===== CONFIGURAR MERMAID =====
-mermaid.initialize({
-    startOnLoad: false,
-    theme: "default",
-    securityLevel: "loose",
-    flowchart: { useMaxWidth: true, htmlLabels: true }
-});
-
-// ===== FUNCIÓN: ESCAPAR HTML =====
+// ===== ESCAPAR HTML =====
 function escaparHTML(texto) {
     const div = document.createElement("div");
     div.textContent = texto;
     return div.innerHTML;
 }
 
-// ===== FUNCIÓN: CREAR BLOQUE DE CÓDIGO =====
+// ===== LIMPIAR MERMAID =====
+function limpiarMermaid(codigo) {
+    let limpio = codigo.trim();
+    limpio = limpio.replace(/```mermaid/g, "").replace(/```/g, "");
+    limpio = limpio.trim();
+    const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey"];
+    for (const palabra of palabrasClave) {
+        const idx = limpio.indexOf(palabra);
+        if (idx !== -1) {
+            limpio = limpio.substring(idx);
+            break;
+        }
+    }
+    return limpio;
+}
+
+// ===== CREAR BLOQUE DE CÓDIGO =====
 function crearBloqueCodigo(codigo, lenguaje) {
     const bloque = document.createElement("div");
     bloque.classList.add("bloque-codigo");
 
-    // Barra superior
     const barra = document.createElement("div");
     barra.classList.add("barra-codigo");
 
@@ -56,7 +61,6 @@ function crearBloqueCodigo(codigo, lenguaje) {
     const acciones = document.createElement("div");
     acciones.classList.add("acciones");
 
-    // Botón copiar
     const btnCopiar = document.createElement("button");
     btnCopiar.textContent = "📋 Copiar";
     btnCopiar.addEventListener("click", () => {
@@ -66,7 +70,6 @@ function crearBloqueCodigo(codigo, lenguaje) {
         });
     });
 
-    // Botón descargar
     const btnDescargar = document.createElement("button");
     btnDescargar.textContent = "⬇️ Descargar";
     btnDescargar.addEventListener("click", () => {
@@ -90,16 +93,16 @@ function crearBloqueCodigo(codigo, lenguaje) {
     barra.appendChild(nombreLenguaje);
     barra.appendChild(acciones);
 
-    // Bloque de código
     const pre = document.createElement("pre");
     const code = document.createElement("code");
-    code.textContent = codigo;
     if (lenguaje && hljs.getLanguage(lenguaje)) {
         try {
             code.innerHTML = hljs.highlight(codigo, { language: lenguaje }).value;
         } catch (e) {
             code.textContent = codigo;
         }
+    } else {
+        code.textContent = codigo;
     }
     pre.appendChild(code);
 
@@ -108,32 +111,26 @@ function crearBloqueCodigo(codigo, lenguaje) {
     return bloque;
 }
 
-// ===== FUNCIÓN: PROCESAR TEXTO CON MARKDOWN Y BLOQUES =====
+// ===== PROCESAR MENSAJE =====
 function procesarMensaje(texto) {
     const contenedor = document.createElement("div");
-
-    // Separar por bloques de código ```
     const partes = texto.split(/```/);
 
     partes.forEach((parte, i) => {
         if (i % 2 === 1) {
-            // Es un bloque de código
             const lineas = parte.split("\n");
             const lenguaje = lineas[0].trim().toLowerCase();
             const codigo = lineas.slice(1).join("\n").trim();
 
             if (lenguaje === "mermaid") {
-                // Renderizar como diagrama Mermaid
                 const contenedorMermaid = document.createElement("div");
                 contenedorMermaid.classList.add("mermaid");
                 contenedorMermaid.textContent = codigo;
                 contenedor.appendChild(contenedorMermaid);
             } else {
-                // Bloque de código normal
                 contenedor.appendChild(crearBloqueCodigo(codigo, lenguaje));
             }
         } else {
-            // Texto normal: convertir Markdown a HTML
             if (parte.trim()) {
                 const html = marked.parse(parte);
                 const div = document.createElement("div");
@@ -146,14 +143,13 @@ function procesarMensaje(texto) {
     return contenedor;
 }
 
-// ===== FUNCIÓN: AGREGAR MENSAJE AL CHAT =====
+// ===== AGREGAR MENSAJE =====
 function agregarMensaje(texto, tipo) {
     const div = document.createElement("div");
     div.classList.add("mensaje", tipo);
 
     if (tipo === "bot") {
-        const contenido = procesarMensaje(texto);
-        div.appendChild(contenido);
+        div.appendChild(procesarMensaje(texto));
     } else {
         div.textContent = texto;
     }
@@ -161,25 +157,19 @@ function agregarMensaje(texto, tipo) {
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 
-    // Renderizar diagramas Mermaid
     const diagramas = div.querySelectorAll(".mermaid");
-    if (diagramas.length > 0) {
-        diagramas.forEach((d, idx) => {
-            const idUnico = `mermaid-${Date.now()}-${idx}`;
-            try {
-                mermaid.render(idUnico, d.textContent).then(({ svg }) => {
-                    d.innerHTML = svg;
-                }).catch((err) => {
-                    d.innerHTML = `<div class="error-mermaid">⚠️ No se pudo renderizar el diagrama Mermaid.<br><small>${escaparHTML(err.message || "")}</small></div>`;
-                });
-            } catch (err) {
-                d.innerHTML = `<div class="error-mermaid">⚠️ Error al renderizar el diagrama.</div>`;
-            }
+    diagramas.forEach((d, idx) => {
+        const codigoLimpio = limpiarMermaid(d.textContent);
+        const idUnico = `mermaid-${Date.now()}-${idx}`;
+        mermaid.render(idUnico, codigoLimpio).then(({ svg }) => {
+            d.innerHTML = svg;
+        }).catch(() => {
+            d.innerHTML = `<div class="error-mermaid">⚠️ No se pudo renderizar el diagrama Mermaid. El código generado tenía errores de sintaxis.</div>`;
         });
-    }
+    });
 }
 
-// ===== FUNCIÓN: MOSTRAR "ESCRIBIENDO..." =====
+// ===== ESCRIBIENDO =====
 function mostrarEscribiendo() {
     const div = document.createElement("div");
     div.classList.add("escribiendo");
@@ -194,10 +184,9 @@ function quitarEscribiendo() {
     if (el) el.remove();
 }
 
-// ===== FUNCIÓN: ENVIAR MENSAJE AL BACKEND =====
+// ===== ENVIAR MENSAJE =====
 async function enviarMensaje(texto) {
     if (!texto.trim() || enviando) return;
-
     enviando = true;
     btnEnviar.disabled = true;
 
@@ -211,7 +200,6 @@ async function enviarMensaje(texto) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ mensaje: texto })
         });
-
         const data = await respuesta.json();
         quitarEscribiendo();
 
@@ -231,7 +219,7 @@ async function enviarMensaje(texto) {
     }
 }
 
-// ===== FUNCIÓN: INICIAR CHAT =====
+// ===== INICIAR CHAT =====
 async function iniciarChat() {
     chat.innerHTML = "";
     mostrarEscribiendo();
@@ -269,7 +257,6 @@ btnReiniciar.addEventListener("click", () => {
     }
 });
 
-// ===== INICIAR AL CARGAR LA PÁGINA =====
 window.addEventListener("load", () => {
     iniciarChat();
     input.focus();
