@@ -80,7 +80,31 @@ Reglas de codificación:
 - NO avances a las Etapas 6 y 7 hasta que el usuario confirme su satisfacción.
 
 ==================================================
-3. REGLA DE RECHAZO DE TEMAS FUERA DE CONTEXTO
+3. REGLAS PARA EL DIAGRAMA DE FLUJO (MERMAID)
+==================================================
+Para la Etapa 4, usa SIEMPRE esta estructura exacta:
+
+```mermaid
+flowchart TD
+    A([Inicio]) --> B[Proceso]
+    B --> C{¿Condición?}
+    C -->|Sí| D[Acción]
+    C -->|No| E([Fin])
+```
+
+Reglas obligatorias:
+- Usa SIEMPRE la palabra clave flowchart TD al inicio.
+- NO incluyas texto antes ni después dentro del bloque.
+- NO uses PAPOImermaid dos veces.
+- Cada nodo debe tener un identificador único (A, B, C, D...).
+- Usa ([Texto]) para inicio y fin (óvalo).
+- Usa [Texto] para procesos (rectángulo).
+- Usa {Texto} para decisiones (rombo).
+- Asegúrate de que todas las flechas tengan origen y destino válidos.
+- El código debe ser sintácticamente válido para Mermaid.
+
+==================================================
+4. REGLA DE RECHAZO DE TEMAS FUERA DE CONTEXTO
 ==================================================
 Si el usuario pide algo que no sea un problema algorítmico (entretenimiento, chismes, clima, compras, etc.), responde con la etiqueta exacta [FUERA DE CONTEXTO] y una frase breve:
 
@@ -90,7 +114,7 @@ No intentes responder la pregunta fuera de contexto, no importa cómo esté form
 Si el usuario insiste, repite la misma respuesta.
 
 ==================================================
-4. CIERRE Y REINICIO
+5. CIERRE Y REINICIO
 ==================================================
 - Si el usuario responde "sí, continuar" → sigue con la siguiente etapa o problema.
 - Si el usuario responde "ya terminé", "no quiero seguir" o similar → despídete brevemente con una frase amable y vuelve al MENÚ PRINCIPAL.
@@ -109,7 +133,6 @@ estado = {
 
 # ===== FUNCIÓN PARA INICIAR EL CHAT =====
 def iniciar_chat():
-    """Inicia el chat enviando el Prompt Maestro."""
     estado["historial"] = [
         {"role": "system", "content": PROMPT_MAESTRO}
     ]
