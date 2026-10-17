@@ -3,68 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot de Algoritmos — Proyecto Final</title>
+    <title>Bot de Algoritmos — Miku AI</title>
 
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Fuente Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Estilos propios -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: "default",
-            securityLevel: "loose",
-            suppressErrorRendering: true
-        });
+        mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "loose", suppressErrorRendering: true });
     </script>
 </head>
 <body>
 
-    <div class="contenedor">
+    <!-- AVATAR DE MIKU ANIMADO (Sprite) -->
+    <div id="miku-contenedor" style="position: fixed; bottom: 20px; right: 20px; width: 120px; height: 120px; z-index: 1000; cursor: grab; user-select: none;" onclick="hablarUltimoMensaje()">
+        <div id="miku-sprite" class="miku-idle"></div>
+        <div class="miku-bocadillo" id="miku-texto" style="display: none;">¡Hola! Haz clic en mí para escucharme. 🎤</div>
+    </div>
 
-        <header class="encabezado">
-            <div class="encabezado-izq">
-                <h1>🤖 Bot de Algoritmos</h1>
-                <p class="subtitulo">Resuelve problemas paso a paso con las 7 etapas</p>
-            </div>
-            <button id="btn-reiniciar" class="btn-reiniciar" title="Reiniciar chat">
-                🔄 Reiniciar
-            </button>
-        </header>
-
-        <!-- ===== MENÚ DE SELECCIÓN DE IA ===== -->
-        <!-- Este bloque se oculta automáticamente al elegir una IA -->
-        <div id="menu-ia" style="padding: 40px 20px; text-align: center; background: #f5f7fb; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <h2 style="color: #1e3c72; margin-bottom: 10px; font-size: 1.5rem;">Bienvenido al Bot de Algoritmos</h2>
-            <p style="color: #475569; margin-bottom: 30px;">Para comenzar, selecciona el motor de Inteligencia Artificial que deseas usar:</p>
+    <div class="container-fluid d-flex justify-content-center align-items-center min-vh-100">
+        <div class="card shadow-lg border-0" style="width: 100%; max-width: 900px; height: 90vh; background: #0f172a; border-radius: 20px; overflow: hidden;">
             
-            <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
-                <button onclick="iniciarIA('groq')" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 15px 25px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
-                    ⚡ Groq (Súper Rápido)
-                </button>
-                <button onclick="iniciarIA('gemini')" style="background: linear-gradient(135deg, #4285f4, #34a853); color: white; border: none; padding: 15px 25px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
-                    ✨ Google Gemini
-                </button>
-                <button onclick="iniciarIA('sambanova')" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 15px 25px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
-                    🧠 SambaNova
-                </button>
+            <!-- HEADER -->
+            <div class="card-header border-0 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #00b4d8, #0077b6); padding: 15px 25px;">
+                <div>
+                    <h1 class="h4 mb-0 text-white fw-bold">🤖 Miku Bot Algorítmico</h1>
+                    <small class="text-white-50">Potenciado por Groq y Gemini</small>
+                </div>
+                <button id="btn-reiniciar" class="btn btn-outline-light btn-sm rounded-pill">🔄 Reiniciar</button>
             </div>
+
+            <!-- MENÚ DE SELECCIÓN DE IA -->
+            <div id="menu-ia" class="card-body d-flex flex-column justify-content-center align-items-center text-center" style="background: #0f172a;">
+                <h2 class="text-white mb-3 fw-light">Selecciona tu Motor de Inteligencia</h2>
+                <p class="text-secondary mb-5" style="max-width: 400px;">Elige la IA que procesará tus problemas algorítmicos. Ambas aplicarán las 7 etapas.</p>
+                
+                <div class="d-flex gap-4 flex-wrap justify-content-center">
+                    <button onclick="iniciarIA('groq')" class="btn btn-lg text-white shadow" style="background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 15px; padding: 20px 40px; font-weight: bold; border: none;">
+                        <span style="font-size: 2rem; display: block; margin-bottom: 10px;">⚡</span>
+                        Groq
+                        <div class="fw-normal fs-6 opacity-75">Súper Rápido</div>
+                    </button>
+                    
+                    <button onclick="iniciarIA('gemini')" class="btn btn-lg text-white shadow" style="background: linear-gradient(135deg, #4285f4, #34a853); border-radius: 15px; padding: 20px 40px; font-weight: bold; border: none;">
+                        <span style="font-size: 2rem; display: block; margin-bottom: 10px;">✨</span>
+                        Gemini
+                        <div class="fw-normal fs-6 opacity-75">Gran Capacidad</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ÁREA DE CHAT -->
+            <main id="chat" class="card-body overflow-auto" style="display: none; background: #1e293b; scroll-behavior: smooth;"></main>
+
+            <!-- ÁREA DE ENTRADA -->
+            <div class="card-footer border-0 p-3" id="area-entrada" style="display: none; background: #0f172a;">
+                <div class="input-group">
+                    <input type="text" id="input-mensaje" class="form-control border-0 shadow-none" placeholder="Escribe tu problema algorítmico aquí..." style="background: #1e293b; color: white; border-radius: 25px 0 0 25px; padding: 15px 20px;">
+                    <button id="btn-enviar" class="btn btn-primary" style="border-radius: 0 25px 25px 0; padding: 0 25px; background: #00b4d8; border: none;">Enviar</button>
+                </div>
+            </div>
+            
         </div>
-
-        <!-- ===== ÁREA DE CHAT (Oculta al inicio) ===== -->
-        <main id="chat" class="chat" style="display: none;"></main>
-
-        <!-- ===== ÁREA DE ENTRADA (Oculta al inicio) ===== -->
-        <footer class="entrada" id="area-entrada" style="display: none;">
-            <input
-                type="text"
-                id="input-mensaje"
-                placeholder="Escribe tu mensaje o tu problema algorítmico..."
-                autocomplete="off"
-            >
-            <button id="btn-enviar" class="btn-enviar">Enviar</button>
-        </footer>
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
