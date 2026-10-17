@@ -32,9 +32,30 @@
             </button>
         </header>
 
-        <main id="chat" class="chat"></main>
+        <!-- ===== MENÚ DE SELECCIÓN DE IA ===== -->
+        <!-- Este bloque se oculta automáticamente al elegir una IA -->
+        <div id="menu-ia" style="padding: 40px 20px; text-align: center; background: #f5f7fb; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <h2 style="color: #1e3c72; margin-bottom: 10px; font-size: 1.5rem;">Bienvenido al Bot de Algoritmos</h2>
+            <p style="color: #475569; margin-bottom: 30px;">Para comenzar, selecciona el motor de Inteligencia Artificial que deseas usar:</p>
+            
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                <button onclick="iniciarIA('groq')" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 15px 25px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
+                    ⚡ Groq (Súper Rápido)
+                </button>
+                <button onclick="iniciarIA('gemini')" style="background: linear-gradient(135deg, #4285f4, #34a853); color: white; border: none; padding: 15px 25px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
+                    ✨ Google Gemini
+                </button>
+                <button onclick="iniciarIA('sambanova')" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border: none; padding: 15px 25px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
+                    🧠 SambaNova
+                </button>
+            </div>
+        </div>
 
-        <footer class="entrada">
+        <!-- ===== ÁREA DE CHAT (Oculta al inicio) ===== -->
+        <main id="chat" class="chat" style="display: none;"></main>
+
+        <!-- ===== ÁREA DE ENTRADA (Oculta al inicio) ===== -->
+        <footer class="entrada" id="area-entrada" style="display: none;">
             <input
                 type="text"
                 id="input-mensaje"
