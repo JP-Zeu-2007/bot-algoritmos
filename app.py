@@ -1,3 +1,24 @@
+# ============================================
+# BOT DE ALGORITMOS - BACKEND MULTI-IA
+# ============================================
+
+import os
+from flask import Flask, render_template, request, jsonify
+from dotenv import load_dotenv
+from openai import OpenAI
+from google import genai
+
+load_dotenv()
+
+# ===== API KEYS =====
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+SAMBANOVA_API_KEY = os.getenv("SAMBANOVA_API_KEY")
+
+app = Flask(__name__)
+
+# ===== PROMPT MAESTRO =====
+PROMPT_MAESTRO = """
 Actúa como un resolutor experto de problemas algorítmicos. Eres amable, conversacional y muy ordenado al mostrar la información.
 
 ==================================================
@@ -26,10 +47,10 @@ Las 7 etapas oficiales son:
 7. Documentación
 
 ==================================================
-2. REGLA ESPECIAL: EVALUACIÓN DE ALTERNATIVAS (MUY IMPORTANTE)
+2. REGLA ESPECIAL: EVALUACIÓN DE ALTERNATIVAS (TABLA)
 ==================================================
 Justo antes de generar el código (Etapa 5), DEBES presentar una "Matriz de Evaluación de Soluciones". 
-Propón 3 soluciones alternativas (ej. Solución A, Solución B, Solución C) y evalúalas del 1 al 10 en estos criterios:
+Propón 3 soluciones alternativas (Solución A, Solución B, Solución C) y evalúalas del 1 al 10 en estos 4 criterios:
 1. Velocidad / Rendimiento
 2. Complejidad (donde 10 es lo más fácil de entender)
 3. Eficiencia de recursos
@@ -37,10 +58,11 @@ Propón 3 soluciones alternativas (ej. Solución A, Solución B, Solución C) y 
 
 Presenta la información ESTRICTAMENTE en una tabla Markdown. Al final de la tabla, añade una fila con el **Promedio** de cada solución. Luego, escribe un párrafo breve indicando cuál es la **"Mejor Alternativa"** basándote en el promedio y explica por qué. Finalmente, pregunta al usuario si está de acuerdo con esa elección para proceder a codificar.
 
-Ejemplo del formato exigido:
+Ejemplo del formato exacto que debes usar:
+
 ### 📊 Evaluación de Alternativas para la Solución
 
-| Criterio | Solución A (Fuerza Bruta) | Solución B (Divide y Vencerás) | Solución C (Optimizada) |
+| Criterio | Solución A | Solución B | Solución C |
 | :--- | :---: | :---: | :---: |
 | Velocidad | 5/10 | 8/10 | 9/10 |
 | Complejidad | 9/10 | 6/10 | 4/10 |
@@ -48,14 +70,14 @@ Ejemplo del formato exigido:
 | Reutilización | 6/10 | 7/10 | 9/10 |
 | **Promedio** | **6.0** | **7.25** | **8.0** |
 
-**🏆 Mejor Alternativa:** La Solución C, ya que ofrece el mejor rendimiento y eficiencia, a pesar de ser un poco más compleja.
+**🏆 Mejor Alternativa:** La Solución C, ya que ofrece el mejor rendimiento y eficiencia.
 
 ==================================================
 3. REGLAS DE FORMATO Y CONVERSACIÓN
 ==================================================
-- ORDEN VISUAL: Cada vez que expliques una etapa, DEBES usar encabezados. Por ejemplo: "### 🟢 Etapa 1 — Análisis del Problema".
-- COMPRENSIÓN LECTORA: Si el usuario te escribe un texto largo, LEE TODO e interpreta lo que necesita.
-- Si el usuario solo dice "hola", responde amablemente pero recuérdale que debe darte un problema.
+- ORDEN VISUAL: Cada vez que expliques una etapa, DEBES usar encabezados. Por ejemplo: "### 🟢 Etapa 1 — Análisis del Problema". Nunca mezcles dos etapas en un mismo párrafo.
+- COMPRENSIÓN LECTORA: Si el usuario te escribe un texto largo, con detalles, LEE TODO con atención e interpreta lo que necesita. NO lo rechaces por ser largo.
+- Si el usuario solo te dice "hola", responde amablemente pero recuérdale que debe darte un problema.
 
 ==================================================
 4. REGLAS OBLIGATORIAS PARA LA ETAPA 5 (CODIFICACIÓN)
@@ -74,7 +96,7 @@ Antes de generar cualquier código, despliega EXACTAMENTE este menú UNA SOLA VE
 [7] Otro (escríbelo)
 ────────────────────────────
 
-- Si el usuario escribe el nombre de un lenguaje, genera el código de inmediato.
+- Si el usuario escribe el nombre de un lenguaje (ej: "HTML", "PHP"), asume que ese es el lenguaje y genera el código.
 - Tras generar el código, pregunta: "¿Te parece bien o quieres que evaluemos algún punto de este problema?"
 
 ==================================================
@@ -90,7 +112,7 @@ flowchart TD
     C -->|No| E([Fin])
 PAPOI
 
-Reglas: Usa flowchart TD al inicio. Identificadores únicos (A, B, C...).
+Reglas: Usa flowchart TD al inicio. Identificadores únicos (A, B, C...). Código sintácticamente válido.
 
 ==================================================
 6. REGLA DE RECHAZO (ESTRICTO)
@@ -99,3 +121,156 @@ Si el usuario pide algo totalmente ajeno a la programación (chismes, recetas, p
 "[FUERA DE CONTEXTO] Lo siento, solo puedo ayudarte a resolver problemas algorítmicos."
 
 Inicia la conversación mostrando el menú de bienvenida.
+"""
+
+# ===== ESTADO GLOBAL =====
+estado = {
+    "historial": [],
+    "esperando_password": False,
+    "modo_admin": False,
+    "iniciado": False,
+    "paso_actual": "inicio",
+    "ia_actual": "groq" # Por defecto
+}
+
+# ===== FUNCIONES DE CONEXIÓN =====
+def generar_respuesta_groq(historial):
+    client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+    respuesta = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=historial
+    )
+    return respuesta.choices[0].message.content
+
+def generar_respuesta_sambanova(historial):
+    client = OpenAI(api_key=SAMBANOVA_API_KEY, base_url="https://api.sambanova.ai/v1")
+    respuesta = client.chat.completions.create(
+        model="Meta-Llama-3.3-70B-Instruct", # Modelo por defecto en SambaNova
+        messages=historial
+    )
+    return respuesta.choices[0].message.content
+
+def generar_respuesta_gemini(historial):
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    contents = []
+    for msg in historial:
+        if msg["role"] == "system":
+            contents.append({"role": "user", "parts": [{"text": f"INSTRUCCIONES: {msg['content']}"}]})
+        elif msg["role"] == "user":
+            contents.append({"role": "user", "parts": [{"text": msg["content"]}]})
+        elif msg["role"] == "assistant":
+            contents.append({"role": "model", "parts": [{"text": msg["content"]}]})
+    
+    respuesta = client.models.generate_content(
+        model="gemini-2.5-flash", # Asegúrate de tener acceso a este modelo
+        contents=contents
+    )
+    return respuesta.text
+
+# ===== RUTAS =====
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/seleccionar_ia", methods=["POST"])
+def seleccionar_ia():
+    data = request.get_json()
+    ia = data.get("ia", "groq")
+    estado["ia_actual"] = ia
+    estado["iniciado"] = False
+    estado["historial"] = []
+    return jsonify({"ok": True, "mensaje": f"Usando {ia.upper()}"})
+
+@app.route("/iniciar", methods=["POST"])
+def iniciar():
+    try:
+        estado["historial"] = [{"role": "system", "content": PROMPT_MAESTRO}]
+        
+        if estado["ia_actual"] == "groq":
+            texto = generar_respuesta_groq(estado["historial"])
+        elif estado["ia_actual"] == "sambanova":
+            texto = generar_respuesta_sambanova(estado["historial"])
+        else:
+            texto = generar_respuesta_gemini(estado["historial"])
+
+        estado["historial"].append({"role": "assistant", "content": texto})
+        estado["iniciado"] = True
+        estado["paso_actual"] = "inicio"
+        estado["esperando_password"] = False
+        estado["modo_admin"] = False
+        return jsonify({"ok": True, "respuesta": texto})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/reiniciar_historial", methods=["POST"])
+def reiniciar_historial():
+    estado["historial"] = [{"role": "system", "content": PROMPT_MAESTRO}]
+    estado["paso_actual"] = "inicio"
+    return jsonify({"ok": True})
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json()
+    entrada = data.get("mensaje", "").strip()
+
+    if not entrada:
+        return jsonify({"ok": False, "error": "Mensaje vacío"}), 400
+
+    if not estado["iniciado"]:
+        return jsonify({"ok": False, "error": "El chat no ha iniciado. Selecciona una IA."}), 400
+
+    # ===== LÓGICA DE ADMIN =====
+    if entrada == "HUEVOS VERDES CON JAMON":
+        estado["esperando_password"] = True
+        return jsonify({"ok": True, "respuesta": "FAKNASTIK A WEBO, CONTRASEÑA:"})
+
+    if estado["esperando_password"]:
+        if entrada == "Filipenses4:13":
+            estado["modo_admin"] = True
+            estado["esperando_password"] = False
+            return jsonify({"ok": True, "respuesta": "TODO LO PUEDO EN CRISTO QUE ME FORTALECE\n\n[MODO ADMIN ACTIVO] Modo admin activado. ¿Qué deseas hacer ahora?"})
+        else:
+            estado["esperando_password"] = False
+            return jsonify({"ok": True, "respuesta": "Contraseña incorrecta. No tienes acceso al modo admin."})
+
+    if entrada in ["MODO SUPER ALEXA", "ACTIVA MODO SUPER ALEXA"]:
+        if estado["modo_admin"]:
+            estado["modo_admin"] = False
+            return jsonify({"ok": True, "respuesta": "Modo admin desactivado. Volviendo a la normalidad."})
+        else:
+            return jsonify({"ok": True, "respuesta": "No estás en modo admin."})
+
+    # ===== CONTROL DE FLUJO =====
+    if estado["paso_actual"] == "inicio":
+        if entrada in ["1", "2"]:
+            estado["paso_actual"] = "esperando_problema"
+            modo = "RÁPIDO" if entrada == "1" else "PASO A PASO"
+            respuesta_forzada = f"¡Excelente! Has elegido el modo **{modo}**. Ahora, por favor escribe el enunciado del problema algorítmico que deseas resolver."
+            estado["historial"].append({"role": "user", "content": entrada})
+            estado["historial"].append({"role": "assistant", "content": respuesta_forzada})
+            return jsonify({"ok": True, "respuesta": respuesta_forzada})
+
+    if estado["paso_actual"] == "esperando_problema":
+        if len(entrada) > 5: 
+            estado["paso_actual"] = "en_proceso"
+        else:
+            return jsonify({"ok": True, "respuesta": "Por favor, escribe un problema un poco más detallado para poder ayudarte."})
+
+    # ===== ENVIAR A LA IA CORRESPONDIENTE =====
+    try:
+        estado["historial"].append({"role": "user", "content": entrada})
+        
+        if estado["ia_actual"] == "groq":
+            texto = generar_respuesta_groq(estado["historial"])
+        elif estado["ia_actual"] == "sambanova":
+            texto = generar_respuesta_sambanova(estado["historial"])
+        else:
+            texto = generar_respuesta_gemini(estado["historial"])
+
+        estado["historial"].append({"role": "assistant", "content": texto})
+        return jsonify({"ok": True, "respuesta": texto})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Error en {estado['ia_actual']}: {str(e)}"}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
