@@ -1,357 +1,78 @@
-// ============================================
-// BOT DE ALGORITMOS - LÓGICA DEL CLIENTE
-// ============================================
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot de Algoritmos — Proyecto Final</title>
 
-const chat = document.getElementById("chat");
-const input = document.getElementById("input-mensaje");
-const btnEnviar = document.getElementById("btn-enviar");
-const btnReiniciar = document.getElementById("btn-reiniciar");
-const menuIa = document.getElementById("menu-ia");
-const areaEntrada = document.getElementById("area-entrada");
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css">
 
-let enviando = false;
-
-// Configurar Marked
-marked.setOptions({ breaks: true, gfm: true });
-
-// ===== ESCAPAR HTML =====
-function escaparHTML(texto) {
-    const div = document.createElement("div");
-    div.textContent = texto;
-    return div.innerHTML;
-}
-
-// ===== LIMPIAR MERMAID =====
-function limpiarMermaid(codigo) {
-    let limpio = codigo.trim();
-    limpio = limpio.replace(/```mermaid/g, "").replace(/```/g, "");
-    limpio = limpio.trim();
-    const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey"];
-    for (const palabra of palabrasClave) {
-        const idx = limpio.indexOf(palabra);
-        if (idx !== -1) {
-            limpio = limpio.substring(idx);
-            break;
-        }
-    }
-    return limpio;
-}
-
-// ===== DETECTAR Y CREAR BOTONES DE OPCIONES =====
-function generarBotonesOpciones(texto) {
-    const divBotones = document.createElement("div");
-    divBotones.classList.add("opciones-container");
-
-    if (texto.includes("[1] TODOS LOS PROCESOS") && texto.includes("[2] SE REALIZA")) {
-        const btn1 = document.createElement("button");
-        btn1.classList.add("btn-opcion");
-        btn1.textContent = "1. Rápido";
-        btn1.onclick = () => enviarMensaje("1");
-
-        const btn2 = document.createElement("button");
-        btn2.classList.add("btn-opcion");
-        btn2.textContent = "2. Paso a Paso";
-        btn2.onclick = () => enviarMensaje("2");
-
-        divBotones.appendChild(btn1);
-        divBotones.appendChild(btn2);
-        return divBotones;
-    }
-
-    if (texto.includes("¿En qué lenguaje de programación deseas el código?")) {
-        const lenguajes = [
-            { id: "1", nombre: "Python" },
-            { id: "2", nombre: "Java" },
-            { id: "3", nombre: "JavaScript" },
-            { id: "4", nombre: "C++" },
-            { id: "5", nombre: "C#" },
-            { id: "6", nombre: "PSeInt" }
-        ];
-        
-        lenguajes.forEach(lang => {
-            const btn = document.createElement("button");
-            btn.classList.add("btn-opcion");
-            btn.textContent = lang.nombre;
-            btn.onclick = () => enviarMensaje(lang.id);
-            divBotones.appendChild(btn);
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: "default",
+            securityLevel: "loose",
+            suppressErrorRendering: true
         });
+    </script>
+</head>
+<body>
 
-        const btnOtro = document.createElement("button");
-        btnOtro.classList.add("btn-opcion");
-        btnOtro.textContent = "Otro";
-        btnOtro.onclick = () => {
-            input.value = "7. ";
-            input.focus();
-        };
-        divBotones.appendChild(btnOtro);
-        return divBotones;
-    }
+    <div class="contenedor">
 
-    return null;
-}
+        <header class="encabezado">
+            <div class="encabezado-izq">
+                <h1>🤖 Bot de Algoritmos</h1>
+                <p class="subtitulo">Resuelve problemas paso a paso con las 7 etapas</p>
+            </div>
+            <button id="btn-reiniciar" class="btn-reiniciar" title="Reiniciar chat">
+                🔄 Reiniciar
+            </button>
+        </header>
 
-// ===== CREAR BLOQUE DE CÓDIGO =====
-function crearBloqueCodigo(codigo, lenguaje) {
-    const bloque = document.createElement("div");
-    bloque.classList.add("bloque-codigo");
+        <!-- ===== MENÚ DE SELECCIÓN DE IA ===== -->
+        <div id="menu-ia" style="padding: 40px 20px; text-align: center; background: #f5f7fb; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <h2 style="color: #1e3c72; margin-bottom: 10px; font-size: 1.5rem;">Bienvenido al Bot de Algoritmos</h2>
+            <p style="color: #475569; margin-bottom: 30px; max-width: 400px; line-height: 1.5;">Para comenzar, selecciona el motor de Inteligencia Artificial que deseas usar:</p>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                <!-- Botón Groq -->
+                <button onclick="iniciarIA('groq')" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); transition: transform 0.2s; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                    <span style="font-size: 1.5rem;">⚡</span>
+                    <span>Groq</span>
+                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.9;">Súper Rápido</span>
+                </button>
+                
+                <!-- Botón Gemini -->
+                <button onclick="iniciarIA('gemini')" style="background: linear-gradient(135deg, #4285f4, #34a853); color: white; border: none; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3); transition: transform 0.2s; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                    <span style="font-size: 1.5rem;">✨</span>
+                    <span>Google Gemini</span>
+                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.9;">Gran Capacidad</span>
+                </button>
+            </div>
+        </div>
 
-    const barra = document.createElement("div");
-    barra.classList.add("barra-codigo");
+        <!-- ===== ÁREA DE CHAT (Oculta al inicio) ===== -->
+        <main id="chat" class="chat" style="display: none;"></main>
 
-    const nombreLenguaje = document.createElement("span");
-    nombreLenguaje.classList.add("lenguaje");
-    nombreLenguaje.textContent = lenguaje || "código";
+        <!-- ===== ÁREA DE ENTRADA (Oculta al inicio) ===== -->
+        <footer class="entrada" id="area-entrada" style="display: none;">
+            <input
+                type="text"
+                id="input-mensaje"
+                placeholder="Escribe tu mensaje o tu problema algorítmico..."
+                autocomplete="off"
+            >
+            <button id="btn-enviar" class="btn-enviar">Enviar</button>
+        </footer>
 
-    const acciones = document.createElement("div");
-    acciones.classList.add("acciones");
+    </div>
 
-    const btnCopiar = document.createElement("button");
-    btnCopiar.textContent = "📋 Copiar";
-    btnCopiar.addEventListener("click", () => {
-        navigator.clipboard.writeText(codigo).then(() => {
-            btnCopiar.textContent = "✅ Copiado";
-            setTimeout(() => (btnCopiar.textContent = "📋 Copiar"), 1500);
-        });
-    });
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 
-    const btnDescargar = document.createElement("button");
-    btnDescargar.textContent = "⬇️ Descargar";
-    btnDescargar.addEventListener("click", () => {
-        const extensiones = { python: "py", java: "java", javascript: "js", "c++": "cpp", csharp: "cs", c: "c", mermaid: "mmd", html: "html", css: "css" };
-        const ext = extensiones[lenguaje?.toLowerCase()] || "txt";
-        const blob = new Blob([codigo], { type: "text/plain;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `codigo.${ext}`;
-        a.click();
-        URL.revokeObjectURL(url);
-    });
-
-    acciones.appendChild(btnCopiar);
-    acciones.appendChild(btnDescargar);
-    barra.appendChild(nombreLenguaje);
-    barra.appendChild(acciones);
-
-    const pre = document.createElement("pre");
-    const code = document.createElement("code");
-    if (lenguaje && hljs.getLanguage(lenguaje)) {
-        try { code.innerHTML = hljs.highlight(codigo, { language: lenguaje }).value; } catch (e) { code.textContent = codigo; }
-    } else { code.textContent = codigo; }
-    pre.appendChild(code);
-    bloque.appendChild(barra);
-    bloque.appendChild(pre);
-    return bloque;
-}
-
-// ===== PROCESAR MENSAJE =====
-function procesarMensaje(textoOriginal) {
-    const contenedor = document.createElement("div");
-    
-    let texto = textoOriginal;
-    const preguntaLenguaje = "¿En qué lenguaje de programación deseas el código?";
-    const regexDuplicado = new RegExp(`(${preguntaLenguaje}[\\s\\S]*?)${preguntaLenguaje}`, 'g');
-    texto = texto.replace(regexDuplicado, preguntaLenguaje);
-
-    const regexMermaid = /```mermaid([\s\S]*?)```/g;
-    let textoLimpio = texto.replace(regexMermaid, "%%MERMAID_BLOCK%%$1%%END_MERMAID%%");
-
-    const partes = textoLimpio.split(/```/);
-
-    partes.forEach((parte, i) => {
-        if (parte.includes("%%MERMAID_BLOCK%%")) {
-            const codigoMermaid = parte.split("%%MERMAID_BLOCK%%")[1].split("%%END_MERMAID%%")[0].trim();
-            const contenedorMermaid = document.createElement("div");
-            contenedorMermaid.classList.add("mermaid");
-            contenedorMermaid.textContent = codigoMermaid;
-            contenedor.appendChild(contenedorMermaid);
-        } 
-        else if (i % 2 === 1) {
-            const lineas = parte.split("\n");
-            const lenguaje = lineas[0].trim().toLowerCase();
-            const codigo = lineas.slice(1).join("\n").trim();
-            contenedor.appendChild(crearBloqueCodigo(codigo, lenguaje));
-        } 
-        else {
-            if (parte.trim()) {
-                const html = marked.parse(parte);
-                const div = document.createElement("div");
-                div.innerHTML = html;
-                contenedor.appendChild(div);
-            }
-        }
-    });
-
-    const botones = generarBotonesOpciones(textoOriginal);
-    if (botones) {
-        contenedor.appendChild(botones);
-    }
-
-    return contenedor;
-}
-
-// ===== AGREGAR MENSAJE =====
-function agregarMensaje(texto, tipo) {
-    const div = document.createElement("div");
-    div.classList.add("mensaje", tipo);
-
-    if (tipo === "bot") {
-        div.appendChild(procesarMensaje(texto));
-    } else {
-        div.textContent = texto;
-        const btnEditar = document.createElement("button");
-        btnEditar.classList.add("btn-editar");
-        btnEditar.textContent = "✏️";
-        btnEditar.title = "Editar mensaje";
-        btnEditar.onclick = () => editarMensaje(div, texto);
-        div.appendChild(btnEditar);
-    }
-
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-
-    const diagramas = div.querySelectorAll(".mermaid");
-    diagramas.forEach((d, idx) => {
-        const codigoLimpio = limpiarMermaid(d.textContent);
-        const idUnico = `mermaid-${Date.now()}-${idx}`;
-        
-        if (!codigoLimpio) {
-            d.innerHTML = `<div class="error-mermaid">⚠️ El diagrama vino vacío o con formato incorrecto.</div>`;
-            return;
-        }
-
-        mermaid.render(idUnico, codigoLimpio).then(({ svg }) => {
-            d.innerHTML = svg;
-        }).catch(() => {
-            d.innerHTML = `<div class="error-mermaid">⚠️ El diagrama Mermaid no se pudo dibujar (Error de sintaxis).</div>`;
-        });
-    });
-}
-
-// ===== LÓGICA DE EDITAR MENSAJE =====
-function editarMensaje(divMensaje, textoOriginal) {
-    if (enviando) return;
-    input.value = textoOriginal;
-    input.focus();
-
-    let siguiente = divMensaje.nextElementSibling;
-    while (siguiente) {
-        let aBorrar = siguiente;
-        siguiente = siguiente.nextElementSibling;
-        aBorrar.remove();
-    }
-    divMensaje.remove();
-
-    fetch("/reiniciar_historial", { method: "POST" });
-}
-
-// ===== ESCRIBIENDO =====
-function mostrarEscribiendo() {
-    const div = document.createElement("div");
-    div.classList.add("escribiendo");
-    div.id = "escribiendo";
-    div.innerHTML = "<span></span><span></span><span></span>";
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-}
-
-function quitarEscribiendo() {
-    const el = document.getElementById("escribiendo");
-    if (el) el.remove();
-}
-
-// ===== ENVIAR MENSAJE =====
-async function enviarMensaje(texto) {
-    if (!texto.trim() || enviando) return;
-    enviando = true;
-    btnEnviar.disabled = true;
-
-    agregarMensaje(texto, "usuario");
-    input.value = "";
-    mostrarEscribiendo();
-
-    try {
-        const respuesta = await fetch("/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mensaje: texto })
-        });
-        const data = await respuesta.json();
-        quitarEscribiendo();
-
-        if (data.ok) {
-            agregarMensaje(data.respuesta, "bot");
-        } else {
-            agregarMensaje("⚠️ " + (data.error || "Error desconocido"), "error");
-        }
-    } catch (error) {
-        quitarEscribiendo();
-        agregarMensaje("⚠️ No se pudo conectar con el servidor.", "error");
-    } finally {
-        enviando = false;
-        btnEnviar.disabled = false;
-        input.focus();
-    }
-}
-
-// ===== INICIAR CHAT =====
-async function iniciarChat() {
-    chat.innerHTML = "";
-    mostrarEscribiendo();
-
-    try {
-        const respuesta = await fetch("/iniciar", { method: "POST" });
-        const data = await respuesta.json();
-        quitarEscribiendo();
-
-        if (data.ok) {
-            agregarMensaje(data.respuesta, "bot");
-        } else {
-            agregarMensaje("⚠️ No se pudo iniciar el chat: " + data.error, "error");
-        }
-    } catch (error) {
-        quitarEscribiendo();
-        agregarMensaje("⚠️ No se pudo conectar con el servidor.", "error");
-    }
-}
-
-// ===== SELECCIÓN DE IA =====
-async function iniciarIA(iaSeleccionada) {
-    // Ocultar el menú de selección
-    menuIa.style.display = "none";
-    
-    // Mostrar el chat y la barra de entrada
-    chat.style.display = "flex";
-    areaEntrada.style.display = "flex";
-    
-    // Avisar al backend qué IA elegimos
-    await fetch("/seleccionar_ia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ia: iaSeleccionada })
-    });
-
-    // Iniciar el chat
-    iniciarChat();
-}
-
-// ===== EVENTOS =====
-btnEnviar.addEventListener("click", () => enviarMensaje(input.value));
-input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        enviarMensaje(input.value);
-    }
-});
-
-btnReiniciar.addEventListener("click", () => {
-    if (confirm("¿Reiniciar el chat? Se perderá el problema actual.")) {
-        // Limpiar chat
-        chat.innerHTML = "";
-        
-        // Ocultar chat y mostrar menú de IAs
-        chat.style.display = "none";
-        areaEntrada.style.display = "none";
-        menuIa.style.display = "flex";
-    }
-});
+</body>
+</html>
