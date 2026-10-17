@@ -24,7 +24,7 @@ client = OpenAI(
 app = Flask(__name__)
 
 # ===== MODELO A USAR =====
-MODELO = "llama-3.3-70b-versatile"
+MODELO = "openai/gpt-oss-120b"
 
 # ===== PROMPT MAESTRO =====
 PROMPT_MAESTRO = """
