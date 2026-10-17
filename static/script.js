@@ -9,19 +9,8 @@ const btnReiniciar = document.getElementById("btn-reiniciar");
 
 let enviando = false;
 
-// ===== MARKED =====
-marked.setOptions({
-    breaks: true,
-    gfm: true,
-    highlight: function (code, lang) {
-        if (lang && hljs.getLanguage(lang)) {
-            try {
-                return hljs.highlight(code, { language: lang }).value;
-            } catch (e) {}
-        }
-        return code;
-    }
-});
+// Configurar Marked
+marked.setOptions({ breaks: true, gfm: true });
 
 // ===== ESCAPAR HTML =====
 function escaparHTML(texto) {
@@ -44,6 +33,61 @@ function limpiarMermaid(codigo) {
         }
     }
     return limpio;
+}
+
+// ===== DETECTAR Y CREAR BOTONES DE OPCIONES =====
+function generarBotonesOpciones(texto) {
+    const divBotones = document.createElement("div");
+    divBotones.classList.add("opciones-container");
+
+    // 1. Detectar el Menú Principal
+    if (texto.includes("[1] TODOS LOS PROCESOS") && texto.includes("[2] SE REALIZA")) {
+        const btn1 = document.createElement("button");
+        btn1.classList.add("btn-opcion");
+        btn1.textContent = "1. Rápido";
+        btn1.onclick = () => enviarMensaje("1");
+
+        const btn2 = document.createElement("button");
+        btn2.classList.add("btn-opcion");
+        btn2.textContent = "2. Paso a Paso";
+        btn2.onclick = () => enviarMensaje("2");
+
+        divBotones.appendChild(btn1);
+        divBotones.appendChild(btn2);
+        return divBotones;
+    }
+
+    // 2. Detectar el Menú de Lenguajes
+    if (texto.includes("¿En qué lenguaje de programación deseas el código?")) {
+        const lenguajes = [
+            { id: "1", nombre: "Python" },
+            { id: "2", nombre: "Java" },
+            { id: "3", nombre: "JavaScript" },
+            { id: "4", nombre: "C++" },
+            { id: "5", nombre: "C#" },
+            { id: "6", nombre: "PSeInt" }
+        ];
+        
+        lenguajes.forEach(lang => {
+            const btn = document.createElement("button");
+            btn.classList.add("btn-opcion");
+            btn.textContent = lang.nombre;
+            btn.onclick = () => enviarMensaje(lang.id);
+            divBotones.appendChild(btn);
+        });
+
+        const btnOtro = document.createElement("button");
+        btnOtro.classList.add("btn-opcion");
+        btnOtro.textContent = "Otro";
+        btnOtro.onclick = () => {
+            input.value = "7. ";
+            input.focus();
+        };
+        divBotones.appendChild(btnOtro);
+        return divBotones;
+    }
+
+    return null;
 }
 
 // ===== CREAR BLOQUE DE CÓDIGO =====
@@ -73,11 +117,7 @@ function crearBloqueCodigo(codigo, lenguaje) {
     const btnDescargar = document.createElement("button");
     btnDescargar.textContent = "⬇️ Descargar";
     btnDescargar.addEventListener("click", () => {
-        const extensiones = {
-            python: "py", java: "java", javascript: "js",
-            "c++": "cpp", csharp: "cs", c: "c",
-            mermaid: "mmd", html: "html", css: "css"
-        };
+        const extensiones = { python: "py", java: "java", javascript: "js", "c++": "cpp", csharp: "cs", c: "c", mermaid: "mmd", html: "html", css: "css" };
         const ext = extensiones[lenguaje?.toLowerCase()] || "txt";
         const blob = new Blob([codigo], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -96,16 +136,9 @@ function crearBloqueCodigo(codigo, lenguaje) {
     const pre = document.createElement("pre");
     const code = document.createElement("code");
     if (lenguaje && hljs.getLanguage(lenguaje)) {
-        try {
-            code.innerHTML = hljs.highlight(codigo, { language: lenguaje }).value;
-        } catch (e) {
-            code.textContent = codigo;
-        }
-    } else {
-        code.textContent = codigo;
-    }
+        try { code.innerHTML = hljs.highlight(codigo, { language: lenguaje }).value; } catch (e) { code.textContent = codigo; }
+    } else { code.textContent = codigo; }
     pre.appendChild(code);
-
     bloque.appendChild(barra);
     bloque.appendChild(pre);
     return bloque;
@@ -140,6 +173,12 @@ function procesarMensaje(texto) {
         }
     });
 
+    // Al final del mensaje, buscar si hay opciones y agregar botones
+    const botones = generarBotonesOpciones(texto);
+    if (botones) {
+        contenedor.appendChild(botones);
+    }
+
     return contenedor;
 }
 
@@ -152,11 +191,19 @@ function agregarMensaje(texto, tipo) {
         div.appendChild(procesarMensaje(texto));
     } else {
         div.textContent = texto;
+        // Agregar botón de editar al mensaje del usuario
+        const btnEditar = document.createElement("button");
+        btnEditar.classList.add("btn-editar");
+        btnEditar.textContent = "✏️";
+        btnEditar.title = "Editar mensaje";
+        btnEditar.onclick = () => editarMensaje(div, texto);
+        div.appendChild(btnEditar);
     }
 
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 
+    // Renderizar Mermaid
     const diagramas = div.querySelectorAll(".mermaid");
     diagramas.forEach((d, idx) => {
         const codigoLimpio = limpiarMermaid(d.textContent);
@@ -167,6 +214,27 @@ function agregarMensaje(texto, tipo) {
             d.innerHTML = `<div class="error-mermaid">⚠️ No se pudo renderizar el diagrama Mermaid. El código generado tenía errores de sintaxis.</div>`;
         });
     });
+}
+
+// ===== LÓGICA DE EDITAR MENSAJE =====
+function editarMensaje(divMensaje, textoOriginal) {
+    if (enviando) return;
+    
+    // Poner el texto en el input
+    input.value = textoOriginal;
+    input.focus();
+
+    // Eliminar los mensajes de la pantalla desde este punto en adelante
+    let siguiente = divMensaje.nextElementSibling;
+    while (siguiente) {
+        let aBorrar = siguiente;
+        siguiente = siguiente.nextElementSibling;
+        aBorrar.remove();
+    }
+    divMensaje.remove();
+
+    // Reiniciar el historial del backend para que la IA olvide lo que vino después
+    fetch("/reiniciar_historial", { method: "POST" });
 }
 
 // ===== ESCRIBIENDO =====
