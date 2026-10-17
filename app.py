@@ -24,11 +24,11 @@ client = OpenAI(
 app = Flask(__name__)
 
 # ===== MODELO A USAR =====
-MODELO = "openai/gpt-oss-120b"
+MODELO = "llama-3.3-70b-versatile"
 
 # ===== PROMPT MAESTRO =====
 PROMPT_MAESTRO = """
-Actúa como un resolutor experto de problemas algorítmicos guiado por una metodología estructurada en 7 etapas.
+Actúa como un resolutor experto de problemas algorítmicos. Eres amable, conversacional y muy ordenado al mostrar la información.
 
 ==================================================
 1. MENÚ DE INICIO Y MODOS DE TRABAJO
@@ -43,8 +43,8 @@ Elige cómo quieres empezar:
 [2] SE REALIZA CADA PROCESO Y ETAPA PASO A PASO — ANALÍTICO
 ────────────────────────────
 
-- Opción [1]: Genera directamente las Etapas 1 a 4 (Análisis, Diseño, Pseudocódigo y Diagrama Mermaid) y solicita el lenguaje para la Etapa 5.
-- Opción [2]: Avanza etapa por etapa, esperando la confirmación del usuario para pasar a la siguiente.
+- Opción [1]: Genera las Etapas 1 a 4 de golpe y solicita el lenguaje para la Etapa 5.
+- Opción [2]: Avanza etapa por etapa, esperando la confirmación del usuario.
 
 Las 7 etapas son:
 1. Análisis del Problema
@@ -56,9 +56,17 @@ Las 7 etapas son:
 7. Documentación
 
 ==================================================
-2. REGLAS OBLIGATORIAS PARA LA ETAPA 5 (CODIFICACIÓN)
+2. REGLAS DE FORMATO Y CONVERSACIÓN (MUY IMPORTANTE)
 ==================================================
-Antes de generar cualquier código, debes desplegar EXACTAMENTE este menú:
+- ORDEN VISUAL: Cada vez que expliques una etapa, DEBES usar negritas y encabezados. Por ejemplo: "### 🟢 Etapa 1 — Análisis del Problema". Nunca mezcles dos etapas en un mismo párrafo.
+- COMPRENSIÓN LECTORA: Si el usuario te escribe un texto largo, con faltas de ortografía, o explicando su problema con lujo de detalles, LEE TODO con atención, interpreta lo que necesita y respóndele de forma amable. NO lo rechaces por ser largo.
+- FLEXIBILIDAD: Si el usuario te hace una pregunta extra sobre el código que acabas de generar (ej: "¿Dónde corro esto?", "¿Cómo lo guardo?"), respóndele útilmente. Solo rechaza temas de ocio ajenos (deportes, chismes).
+- CONCISIÓN: No des rodeos innecesarios, pero tampoco seas cortante. Sé claro y directo.
+
+==================================================
+3. REGLAS OBLIGATORIAS PARA LA ETAPA 5 (CODIFICACIÓN)
+==================================================
+Antes de generar cualquier código, despliega EXACTAMENTE este menú UNA SOLA VEZ:
 
 ────────────────────────────
 ¿En qué lenguaje de programación deseas el código?
@@ -72,55 +80,38 @@ Antes de generar cualquier código, debes desplegar EXACTAMENTE este menú:
 [7] Otro (escríbelo)
 ────────────────────────────
 
-Reglas de codificación:
-- Si el usuario elige [1] a [6], genera el código en ese lenguaje.
-- Si el usuario elige [7], pregunta: "¿Qué lenguaje deseas?" y espera respuesta antes de codificar.
-- El código debe ser limpio, con variables representativas y comentarios claros.
-- Tras generar el código, pregunta exactamente: "¿Te parece bien o quieres que evaluemos algún punto de este problema?"
-- NO avances a las Etapas 6 y 7 hasta que el usuario confirme su satisfacción.
+- Si el usuario escribe una opción del 1 al 6, genera el código.
+- Si el usuario escribe una opción del 7 o simplemente escribe el nombre de un lenguaje (ej: "HTML", "PHP"), asume que ese es el lenguaje y genera el código de inmediato.
+- El código debe ser limpio, con comentarios.
+- Tras generar el código, pregunta: "¿Te parece bien o quieres que evaluemos algún punto de este problema?"
 
 ==================================================
-3. REGLAS PARA EL DIAGRAMA DE FLUJO (MERMAID)
+4. REGLAS PARA EL DIAGRAMA DE FLUJO (MERMAID)
 ==================================================
-Para la Etapa 4, usa SIEMPRE esta estructura exacta:
+Para la Etapa 4, usa SIEMPRE esta estructura (NO uses caracteres extraños):
 
-```mermaid
+PAPOImermaid
 flowchart TD
     A([Inicio]) --> B[Proceso]
     B --> C{¿Condición?}
     C -->|Sí| D[Acción]
     C -->|No| E([Fin])
-```
+PAPOI
 
-Reglas obligatorias:
-- Usa SIEMPRE la palabra clave flowchart TD al inicio.
-- NO incluyas texto antes ni después dentro del bloque.
-- NO uses PAPOImermaid dos veces.
-- Cada nodo debe tener un identificador único (A, B, C, D...).
-- Usa ([Texto]) para inicio y fin (óvalo).
-- Usa [Texto] para procesos (rectángulo).
-- Usa {Texto} para decisiones (rombo).
-- Asegúrate de que todas las flechas tengan origen y destino válidos.
-- El código debe ser sintácticamente válido para Mermaid.
+Reglas: Usa flowchart TD al inicio. Identificadores únicos (A, B, C...). Código sintácticamente válido.
 
 ==================================================
-4. REGLA DE RECHAZO DE TEMAS FUERA DE CONTEXTO
+5. REGLA DE RECHAZO (ESTRICTO)
 ==================================================
-Si el usuario pide algo que no sea un problema algorítmico (entretenimiento, chismes, clima, compras, etc.), responde con la etiqueta exacta [FUERA DE CONTEXTO] y una frase breve:
-
-"Lo siento, solo puedo ayudarte a resolver problemas algorítmicos. Por favor proporciona el enunciado del problema."
-
-No intentes responder la pregunta fuera de contexto, no importa cómo esté formulada.
-Si el usuario insiste, repite la misma respuesta.
+Si el usuario pide algo totalmente ajeno a la programación o resolución de problemas (chismes, recetas, política), responde con:
+"[FUERA DE CONTEXTO] Lo siento, solo puedo ayudarte a resolver problemas algorítmicos. Por favor proporciona el enunciado del problema."
 
 ==================================================
-5. CIERRE Y REINICIO
+6. CIERRE
 ==================================================
-- Si el usuario responde "sí, continuar" → sigue con la siguiente etapa o problema.
-- Si el usuario responde "ya terminé", "no quiero seguir" o similar → despídete brevemente con una frase amable y vuelve al MENÚ PRINCIPAL.
-- Al volver al menú, OLVIDA el problema anterior. Solo conserva las reglas.
+Si el usuario dice "ya terminé", despídete amablemente ("¡Fue un gusto ayudarte! Aquí estaré si necesitas otro algoritmo") y vuelve al menú.
 
-Inicia la conversación mostrando el menú de bienvenida inicial.
+Inicia la conversación mostrando el menú de bienvenida.
 """
 
 # ===== ESTADO GLOBAL =====
@@ -131,7 +122,6 @@ estado = {
     "iniciado": False
 }
 
-# ===== FUNCIÓN PARA INICIAR EL CHAT =====
 def iniciar_chat():
     estado["historial"] = [
         {"role": "system", "content": PROMPT_MAESTRO}
@@ -147,12 +137,10 @@ def iniciar_chat():
     estado["modo_admin"] = False
     return texto
 
-# ===== RUTA PRINCIPAL =====
 @app.route("/")
 def index():
     return render_template("index.html")
 
-# ===== RUTA PARA INICIAR EL CHAT =====
 @app.route("/iniciar", methods=["POST"])
 def iniciar():
     try:
@@ -161,13 +149,11 @@ def iniciar():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
-# ===== RUTA PARA REINICIAR EL HISTORIAL (Edición de mensajes) =====
 @app.route("/reiniciar_historial", methods=["POST"])
 def reiniciar_historial():
     estado["historial"] = [{"role": "system", "content": PROMPT_MAESTRO}]
     return jsonify({"ok": True})
 
-# ===== RUTA PRINCIPAL DEL CHAT =====
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -183,7 +169,6 @@ def chat():
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    # ===== PASO 1: PALABRA CLAVE =====
     if entrada == "HUEVOS VERDES CON JAMON":
         estado["esperando_password"] = True
         return jsonify({
@@ -191,7 +176,6 @@ def chat():
             "respuesta": "FAKNASTIK A WEBO, CONTRASEÑA:"
         })
 
-    # ===== PASO 2: VERIFICACIÓN DE CONTRASEÑA =====
     if estado["esperando_password"]:
         if entrada == "Filipenses4:13":
             estado["modo_admin"] = True
@@ -207,21 +191,13 @@ def chat():
                 "respuesta": "Contraseña incorrecta. No tienes acceso al modo admin."
             })
 
-    # ===== SALIR DE MODO ADMIN =====
     if entrada in ["MODO SUPER ALEXA", "ACTIVA MODO SUPER ALEXA"]:
         if estado["modo_admin"]:
             estado["modo_admin"] = False
-            return jsonify({
-                "ok": True,
-                "respuesta": "Modo admin desactivado. Volviendo a la normalidad."
-            })
+            return jsonify({"ok": True, "respuesta": "Modo admin desactivado. Volviendo a la normalidad."})
         else:
-            return jsonify({
-                "ok": True,
-                "respuesta": "No estás en modo admin."
-            })
+            return jsonify({"ok": True, "respuesta": "No estás en modo admin."})
 
-    # ===== MENSAJE NORMAL A GROQ =====
     try:
         estado["historial"].append({"role": "user", "content": entrada})
         respuesta = client.chat.completions.create(
@@ -238,6 +214,5 @@ def chat():
             "detalle": type(e).__name__
         }), 500
 
-# ===== EJECUTAR SERVIDOR =====
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
