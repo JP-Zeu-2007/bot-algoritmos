@@ -1,5 +1,5 @@
 # ============================================
-# BOT DE ALGORITMOS - BACKEND MULTI-IA
+# BOT DE ALGORITMOS - BACKEND (Groq + Gemini)
 # ============================================
 
 import os
@@ -13,7 +13,6 @@ load_dotenv()
 # ===== API KEYS =====
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-SAMBANOVA_API_KEY = os.getenv("SAMBANOVA_API_KEY")
 
 app = Flask(__name__)
 
@@ -142,14 +141,6 @@ def generar_respuesta_groq(historial):
     )
     return respuesta.choices[0].message.content
 
-def generar_respuesta_sambanova(historial):
-    client = OpenAI(api_key=SAMBANOVA_API_KEY, base_url="https://api.sambanova.ai/v1")
-    respuesta = client.chat.completions.create(
-        model="Meta-Llama-3.3-70B-Instruct", # Modelo por defecto en SambaNova
-        messages=historial
-    )
-    return respuesta.choices[0].message.content
-
 def generar_respuesta_gemini(historial):
     client = genai.Client(api_key=GEMINI_API_KEY)
     contents = []
@@ -162,7 +153,7 @@ def generar_respuesta_gemini(historial):
             contents.append({"role": "model", "parts": [{"text": msg["content"]}]})
     
     respuesta = client.models.generate_content(
-        model="gemini-2.5-flash", # Asegúrate de tener acceso a este modelo
+        model="gemini-3.8-flash", # <--- MODELO CORREGIDO
         contents=contents
     )
     return respuesta.text
@@ -188,8 +179,6 @@ def iniciar():
         
         if estado["ia_actual"] == "groq":
             texto = generar_respuesta_groq(estado["historial"])
-        elif estado["ia_actual"] == "sambanova":
-            texto = generar_respuesta_sambanova(estado["historial"])
         else:
             texto = generar_respuesta_gemini(estado["historial"])
 
@@ -262,8 +251,6 @@ def chat():
         
         if estado["ia_actual"] == "groq":
             texto = generar_respuesta_groq(estado["historial"])
-        elif estado["ia_actual"] == "sambanova":
-            texto = generar_respuesta_sambanova(estado["historial"])
         else:
             texto = generar_respuesta_gemini(estado["historial"])
 
