@@ -7,6 +7,7 @@ const input = document.getElementById("input-mensaje");
 const btnEnviar = document.getElementById("btn-enviar");
 const btnReiniciar = document.getElementById("btn-reiniciar");
 const menuIa = document.getElementById("menu-ia");
+const areaEntrada = document.getElementById("area-entrada");
 
 let enviando = false;
 
@@ -316,8 +317,12 @@ async function iniciarChat() {
 
 // ===== SELECCIÓN DE IA =====
 async function iniciarIA(iaSeleccionada) {
-    // Ocultar el menú
+    // Ocultar el menú de selección
     menuIa.style.display = "none";
+    
+    // Mostrar el chat y la barra de entrada
+    chat.style.display = "flex";
+    areaEntrada.style.display = "flex";
     
     // Avisar al backend qué IA elegimos
     await fetch("/seleccionar_ia", {
@@ -338,10 +343,15 @@ input.addEventListener("keydown", (e) => {
         enviarMensaje(input.value);
     }
 });
+
 btnReiniciar.addEventListener("click", () => {
-    if (confirm("¿Reiniciar el chat?")) {
-        // Al reiniciar, volvemos a mostrar el menú de IAs
+    if (confirm("¿Reiniciar el chat? Se perderá el problema actual.")) {
+        // Limpiar chat
         chat.innerHTML = "";
-        menuIa.style.display = "block";
+        
+        // Ocultar chat y mostrar menú de IAs
+        chat.style.display = "none";
+        areaEntrada.style.display = "none";
+        menuIa.style.display = "flex";
     }
 });
