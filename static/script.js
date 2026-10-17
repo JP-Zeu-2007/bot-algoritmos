@@ -6,6 +6,7 @@ const chat = document.getElementById("chat");
 const input = document.getElementById("input-mensaje");
 const btnEnviar = document.getElementById("btn-enviar");
 const btnReiniciar = document.getElementById("btn-reiniciar");
+const menuIa = document.getElementById("menu-ia");
 
 let enviando = false;
 
@@ -40,7 +41,6 @@ function generarBotonesOpciones(texto) {
     const divBotones = document.createElement("div");
     divBotones.classList.add("opciones-container");
 
-    // 1. Detectar el Menú Principal
     if (texto.includes("[1] TODOS LOS PROCESOS") && texto.includes("[2] SE REALIZA")) {
         const btn1 = document.createElement("button");
         btn1.classList.add("btn-opcion");
@@ -57,7 +57,6 @@ function generarBotonesOpciones(texto) {
         return divBotones;
     }
 
-    // 2. Detectar el Menú de Lenguajes
     if (texto.includes("¿En qué lenguaje de programación deseas el código?")) {
         const lenguajes = [
             { id: "1", nombre: "Python" },
@@ -145,25 +144,34 @@ function crearBloqueCodigo(codigo, lenguaje) {
 }
 
 // ===== PROCESAR MENSAJE =====
-function procesarMensaje(texto) {
+function procesarMensaje(textoOriginal) {
     const contenedor = document.createElement("div");
-    const partes = texto.split(/```/);
+    
+    let texto = textoOriginal;
+    const preguntaLenguaje = "¿En qué lenguaje de programación deseas el código?";
+    const regexDuplicado = new RegExp(`(${preguntaLenguaje}[\\s\\S]*?)${preguntaLenguaje}`, 'g');
+    texto = texto.replace(regexDuplicado, preguntaLenguaje);
+
+    const regexMermaid = /```mermaid([\s\S]*?)```/g;
+    let textoLimpio = texto.replace(regexMermaid, "%%MERMAID_BLOCK%%$1%%END_MERMAID%%");
+
+    const partes = textoLimpio.split(/```/);
 
     partes.forEach((parte, i) => {
-        if (i % 2 === 1) {
+        if (parte.includes("%%MERMAID_BLOCK%%")) {
+            const codigoMermaid = parte.split("%%MERMAID_BLOCK%%")[1].split("%%END_MERMAID%%")[0].trim();
+            const contenedorMermaid = document.createElement("div");
+            contenedorMermaid.classList.add("mermaid");
+            contenedorMermaid.textContent = codigoMermaid;
+            contenedor.appendChild(contenedorMermaid);
+        } 
+        else if (i % 2 === 1) {
             const lineas = parte.split("\n");
             const lenguaje = lineas[0].trim().toLowerCase();
             const codigo = lineas.slice(1).join("\n").trim();
-
-            if (lenguaje === "mermaid") {
-                const contenedorMermaid = document.createElement("div");
-                contenedorMermaid.classList.add("mermaid");
-                contenedorMermaid.textContent = codigo;
-                contenedor.appendChild(contenedorMermaid);
-            } else {
-                contenedor.appendChild(crearBloqueCodigo(codigo, lenguaje));
-            }
-        } else {
+            contenedor.appendChild(crearBloqueCodigo(codigo, lenguaje));
+        } 
+        else {
             if (parte.trim()) {
                 const html = marked.parse(parte);
                 const div = document.createElement("div");
@@ -173,8 +181,7 @@ function procesarMensaje(texto) {
         }
     });
 
-    // Al final del mensaje, buscar si hay opciones y agregar botones
-    const botones = generarBotonesOpciones(texto);
+    const botones = generarBotonesOpciones(textoOriginal);
     if (botones) {
         contenedor.appendChild(botones);
     }
@@ -191,7 +198,6 @@ function agregarMensaje(texto, tipo) {
         div.appendChild(procesarMensaje(texto));
     } else {
         div.textContent = texto;
-        // Agregar botón de editar al mensaje del usuario
         const btnEditar = document.createElement("button");
         btnEditar.classList.add("btn-editar");
         btnEditar.textContent = "✏️";
@@ -203,15 +209,20 @@ function agregarMensaje(texto, tipo) {
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 
-    // Renderizar Mermaid
     const diagramas = div.querySelectorAll(".mermaid");
     diagramas.forEach((d, idx) => {
         const codigoLimpio = limpiarMermaid(d.textContent);
         const idUnico = `mermaid-${Date.now()}-${idx}`;
+        
+        if (!codigoLimpio) {
+            d.innerHTML = `<div class="error-mermaid">⚠️ El diagrama vino vacío o con formato incorrecto.</div>`;
+            return;
+        }
+
         mermaid.render(idUnico, codigoLimpio).then(({ svg }) => {
             d.innerHTML = svg;
         }).catch(() => {
-            d.innerHTML = `<div class="error-mermaid">⚠️ No se pudo renderizar el diagrama Mermaid. El código generado tenía errores de sintaxis.</div>`;
+            d.innerHTML = `<div class="error-mermaid">⚠️ El diagrama Mermaid no se pudo dibujar (Error de sintaxis).</div>`;
         });
     });
 }
@@ -219,12 +230,9 @@ function agregarMensaje(texto, tipo) {
 // ===== LÓGICA DE EDITAR MENSAJE =====
 function editarMensaje(divMensaje, textoOriginal) {
     if (enviando) return;
-    
-    // Poner el texto en el input
     input.value = textoOriginal;
     input.focus();
 
-    // Eliminar los mensajes de la pantalla desde este punto en adelante
     let siguiente = divMensaje.nextElementSibling;
     while (siguiente) {
         let aBorrar = siguiente;
@@ -233,7 +241,6 @@ function editarMensaje(divMensaje, textoOriginal) {
     }
     divMensaje.remove();
 
-    // Reiniciar el historial del backend para que la IA olvide lo que vino después
     fetch("/reiniciar_historial", { method: "POST" });
 }
 
@@ -279,7 +286,6 @@ async function enviarMensaje(texto) {
     } catch (error) {
         quitarEscribiendo();
         agregarMensaje("⚠️ No se pudo conectar con el servidor.", "error");
-        console.error(error);
     } finally {
         enviando = false;
         btnEnviar.disabled = false;
@@ -305,27 +311,37 @@ async function iniciarChat() {
     } catch (error) {
         quitarEscribiendo();
         agregarMensaje("⚠️ No se pudo conectar con el servidor.", "error");
-        console.error(error);
     }
+}
+
+// ===== SELECCIÓN DE IA =====
+async function iniciarIA(iaSeleccionada) {
+    // Ocultar el menú
+    menuIa.style.display = "none";
+    
+    // Avisar al backend qué IA elegimos
+    await fetch("/seleccionar_ia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ia: iaSeleccionada })
+    });
+
+    // Iniciar el chat
+    iniciarChat();
 }
 
 // ===== EVENTOS =====
 btnEnviar.addEventListener("click", () => enviarMensaje(input.value));
-
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         enviarMensaje(input.value);
     }
 });
-
 btnReiniciar.addEventListener("click", () => {
-    if (confirm("¿Reiniciar el chat? Se perderá el problema actual.")) {
-        iniciarChat();
+    if (confirm("¿Reiniciar el chat?")) {
+        // Al reiniciar, volvemos a mostrar el menú de IAs
+        chat.innerHTML = "";
+        menuIa.style.display = "block";
     }
-});
-
-window.addEventListener("load", () => {
-    iniciarChat();
-    input.focus();
 });
