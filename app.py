@@ -161,6 +161,12 @@ def iniciar():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+# ===== RUTA PARA REINICIAR EL HISTORIAL (Edición de mensajes) =====
+@app.route("/reiniciar_historial", methods=["POST"])
+def reiniciar_historial():
+    estado["historial"] = [{"role": "system", "content": PROMPT_MAESTRO}]
+    return jsonify({"ok": True})
+
 # ===== RUTA PRINCIPAL DEL CHAT =====
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -192,7 +198,7 @@ def chat():
             estado["esperando_password"] = False
             return jsonify({
                 "ok": True,
-                "respuesta": "[MODO ADMIN ACTIVO] Modo admin activado. ¿Qué deseas hacer ahora?"
+                "respuesta": "TODO LO PUEDO EN CRISTO QUE ME FORTALECE\n\n[MODO ADMIN ACTIVO] Modo admin activado. ¿Qué deseas hacer ahora?"
             })
         else:
             estado["esperando_password"] = False
