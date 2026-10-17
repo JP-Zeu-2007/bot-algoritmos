@@ -90,13 +90,13 @@ Antes de generar cualquier código, despliega EXACTAMENTE este menú UNA SOLA VE
 ==================================================
 Para la Etapa 4, usa SIEMPRE esta estructura (NO uses caracteres extraños):
 
-PAPOImermaid
+```mermaid
 flowchart TD
     A([Inicio]) --> B[Proceso]
     B --> C{¿Condición?}
     C -->|Sí| D[Acción]
     C -->|No| E([Fin])
-PAPOI
+```
 
 Reglas: Usa flowchart TD al inicio. Identificadores únicos (A, B, C...). Código sintácticamente válido.
 
