@@ -89,6 +89,7 @@ body {
     line-height: 1.55;
     word-wrap: break-word;
     animation: aparecer 0.3s ease;
+    position: relative; /* Para el botón editar */
 }
 
 @keyframes aparecer {
@@ -101,6 +102,25 @@ body {
     background: #2a5298;
     color: white;
     border-bottom-right-radius: 5px;
+    padding-right: 40px; /* Espacio para el botón editar */
+}
+
+/* Botón Editar */
+.btn-editar {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 5px;
+    transition: color 0.2s;
+}
+.btn-editar:hover {
+    color: white;
 }
 
 .mensaje.bot {
@@ -123,11 +143,35 @@ body {
     font-size: 0.85rem;
 }
 
-.mensaje.bot h1, .mensaje.bot h2, .mensaje.bot h3 {
-    margin: 12px 0 8px 0;
-    color: #1e3c72;
-    font-weight: 600;
+/* ===== NUEVOS BOTONES DE OPCIONES ===== */
+.opciones-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #e1e6ef;
 }
+
+.btn-opcion {
+    background: #f0f4fa;
+    color: #2a5298;
+    border: 1px solid #2a5298;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-opcion:hover {
+    background: #2a5298;
+    color: white;
+}
+
+/* Markdown estilos */
+.mensaje.bot h1, .mensaje.bot h2, .mensaje.bot h3 { margin: 12px 0 8px 0; color: #1e3c72; font-weight: 600; }
 .mensaje.bot h1 { font-size: 1.2rem; }
 .mensaje.bot h2 { font-size: 1.1rem; }
 .mensaje.bot h3 { font-size: 1rem; }
@@ -139,165 +183,35 @@ body {
 .mensaje.bot table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.88rem; }
 .mensaje.bot th, .mensaje.bot td { border: 1px solid #d1d9e6; padding: 8px 10px; text-align: left; }
 .mensaje.bot th { background: #f0f4fa; font-weight: 600; color: #1e3c72; }
-.mensaje.bot blockquote { border-left: 4px solid #2a5298; padding-left: 12px; margin: 10px 0; color: #475569; font-style: italic; }
 
-.bloque-codigo {
-    position: relative;
-    margin: 12px 0;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #282c34;
-}
-
-.bloque-codigo .barra-codigo {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1e222a;
-    padding: 8px 12px;
-    font-size: 0.75rem;
-    color: #abb2bf;
-}
-
-.bloque-codigo .lenguaje {
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
+/* Código */
+.bloque-codigo { position: relative; margin: 12px 0; border-radius: 10px; overflow: hidden; background: #282c34; }
+.bloque-codigo .barra-codigo { display: flex; justify-content: space-between; align-items: center; background: #1e222a; padding: 8px 12px; font-size: 0.75rem; color: #abb2bf; }
+.bloque-codigo .lenguaje { text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
 .bloque-codigo .acciones { display: flex; gap: 8px; }
+.bloque-codigo .acciones button { background: transparent; color: #abb2bf; border: 1px solid #3e4451; padding: 3px 10px; border-radius: 5px; cursor: pointer; font-size: 0.72rem; transition: all 0.2s; }
+.bloque-codigo .acciones button:hover { background: #2a5298; color: white; border-color: #2a5298; }
+.bloque-codigo pre { margin: 0; padding: 14px; overflow-x: auto; font-family: 'Consolas', monospace; font-size: 0.85rem; color: #abb2bf; }
 
-.bloque-codigo .acciones button {
-    background: transparent;
-    color: #abb2bf;
-    border: 1px solid #3e4451;
-    padding: 3px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.72rem;
-    transition: all 0.2s;
-}
+/* Mermaid */
+.mermaid { background: #ffffff; padding: 18px; border-radius: 10px; margin: 12px 0; text-align: center; border: 1px solid #e1e6ef; }
+.error-mermaid { background: #fff4e5; border: 1px solid #ffcc80; color: #b35c00; padding: 12px; border-radius: 8px; margin: 10px 0; }
 
-.bloque-codigo .acciones button:hover {
-    background: #2a5298;
-    color: white;
-    border-color: #2a5298;
-}
-
-.bloque-codigo pre {
-    margin: 0;
-    padding: 14px;
-    overflow-x: auto;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 0.85rem;
-    line-height: 1.5;
-    color: #abb2bf;
-}
-
-.bloque-codigo code { font-family: 'Consolas', 'Courier New', monospace; background: transparent; }
-
-.mensaje.bot code:not(.hljs) {
-    background: #eef2f7;
-    color: #c7254e;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    font-family: 'Consolas', 'Courier New', monospace;
-}
-
-.mermaid {
-    background: #ffffff;
-    padding: 18px;
-    border-radius: 10px;
-    margin: 12px 0;
-    text-align: center;
-    overflow-x: auto;
-    border: 1px solid #e1e6ef;
-}
-
-.mermaid svg { max-width: 100%; height: auto; }
-
-.error-mermaid {
-    background: #fff4e5;
-    border: 1px solid #ffcc80;
-    color: #b35c00;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    margin: 10px 0;
-}
-
-.entrada {
-    display: flex;
-    padding: 15px;
-    background: #ffffff;
-    border-top: 1px solid #e1e6ef;
-    gap: 10px;
-}
-
-#input-mensaje {
-    flex: 1;
-    padding: 12px 18px;
-    border: 1px solid #d1d9e6;
-    border-radius: 25px;
-    font-size: 0.93rem;
-    outline: none;
-    transition: border 0.2s, box-shadow 0.2s;
-}
-
-#input-mensaje:focus {
-    border-color: #2a5298;
-    box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
-}
-
-.btn-enviar {
-    background: #2a5298;
-    color: white;
-    border: none;
-    padding: 12px 26px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 0.93rem;
-    font-weight: 600;
-    transition: background 0.2s, transform 0.1s;
-}
-
-.btn-enviar:hover { background: #1e3c72; }
-.btn-enviar:active { transform: scale(0.97); }
+/* Entrada */
+.entrada { display: flex; padding: 15px; background: #ffffff; border-top: 1px solid #e1e6ef; gap: 10px; }
+#input-mensaje { flex: 1; padding: 12px 18px; border: 1px solid #d1d9e6; border-radius: 25px; font-size: 0.93rem; outline: none; }
+#input-mensaje:focus { border-color: #2a5298; }
+.btn-enviar { background: #2a5298; color: white; border: none; padding: 12px 26px; border-radius: 25px; cursor: pointer; font-weight: 600; }
 .btn-enviar:disabled { background: #a0aec0; cursor: not-allowed; }
 
-.escribiendo {
-    display: flex;
-    gap: 5px;
-    padding: 14px 18px;
-    align-self: flex-start;
-    background: #ffffff;
-    border: 1px solid #e1e6ef;
-    border-radius: 15px;
-    border-bottom-left-radius: 5px;
-}
-
-.escribiendo span {
-    width: 8px;
-    height: 8px;
-    background: #2a5298;
-    border-radius: 50%;
-    animation: rebotar 1.4s infinite both;
-}
-
+/* Escribiendo */
+.escribiendo { display: flex; gap: 5px; padding: 14px 18px; align-self: flex-start; background: #ffffff; border: 1px solid #e1e6ef; border-radius: 15px; border-bottom-left-radius: 5px; }
+.escribiendo span { width: 8px; height: 8px; background: #2a5298; border-radius: 50%; animation: rebotar 1.4s infinite both; }
 .escribiendo span:nth-child(2) { animation-delay: 0.2s; }
 .escribiendo span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes rebotar {
-    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-    40% { transform: scale(1); opacity: 1; }
-}
+@keyframes rebotar { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
 
 @media (max-width: 600px) {
     .contenedor { height: 96vh; border-radius: 12px; }
-    .encabezado h1 { font-size: 1.05rem; }
-    .subtitulo { font-size: 0.75rem; }
-    .mensaje { max-width: 95%; font-size: 0.88rem; }
-    .btn-enviar { padding: 12px 18px; }
-    .bloque-codigo pre { font-size: 0.78rem; }
+    .mensaje { max-width: 95%; }
 }
