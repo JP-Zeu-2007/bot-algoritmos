@@ -6,12 +6,14 @@ const chat = document.getElementById("chat");
 const input = document.getElementById("input-mensaje");
 const btnEnviar = document.getElementById("btn-enviar");
 const btnReiniciar = document.getElementById("btn-reiniciar");
-const menuIa = document.getElementById("menu-ia");
-const areaEntrada = document.getElementById("area-entrada");
 
 let enviando = false;
 let ultimoMensajeBot = "";
 const sintetizador = window.speechSynthesis;
+
+// Rutas de los sprites de Miku
+const RUTA_CAMINAR = "/static/miku_caminar.png";
+const RUTA_HABLAR = "/static/miku_hablar.png";
 
 marked.setOptions({ breaks: true, gfm: true });
 
@@ -20,180 +22,98 @@ function hablarTexto(texto) {
     if (!sintetizador) return;
     sintetizador.cancel();
 
+    // Limpiar el texto de Markdown para que no lea símbolos raros
     let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 200); 
-    
     const bocadillo = document.getElementById("miku-texto");
     const mikuSprite = document.getElementById("miku-sprite");
 
+    // Mostrar bocadillo y activar animación de hablar
     if (bocadillo) {
-        bocadillo.textContent = "🎤 " + textoLimpio.substring(0, 40) + "...";
+        bocadillo.textContent = "🎤 " + textoLimpio.substring(0, 35) + "...";
         bocadillo.style.display = "block";
     }
-
-    if (mikuSprite) {
-        mikuSprite.className = "miku-hablando"; 
-    }
+    if (mikuSprite) mikuSprite.className = "miku-hablando";
 
     const utterance = new SpeechSynthesisUtterance(textoLimpio);
     utterance.lang = 'es-ES'; 
-    utterance.pitch = 1.5; 
+    utterance.pitch = 1.5; // Tono agudo
     utterance.rate = 1.1;  
 
     utterance.onend = () => { 
         if (bocadillo) bocadillo.style.display = "none"; 
-        if (mikuSprite) mikuSprite.className = "miku-idle"; 
+        if (mikuSprite) mikuSprite.className = "miku-caminando"; // Vuelve a caminar
     };
     
     sintetizador.speak(utterance);
 }
 
 function hablarUltimoMensaje() {
-    if (ultimoMensajeBot) {
-        hablarTexto(ultimoMensajeBot);
-    } else {
-        hablarTexto("Hola, aún no tengo ningún mensaje que leer. ¡Hazme una pregunta!");
-    }
+    hablarTexto(ultimoMensajeBot || "Hola, soy Miku. ¡Hazme una pregunta!");
 }
 
-// ===== LÓGICA PARA ARRASTRAR A MIKU CON EL MOUSE =====
-const miku = document.getElementById('miku-contenedor');
-const mikuSpriteDrag = document.getElementById('miku-sprite');
-let isDragging = false;
-let offsetX, offsetY;
-
-miku.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    miku.style.animation = 'none';
-    miku.style.cursor = 'grabbing';
-    mikuSpriteDrag.className = "miku-caminando"; 
-    
-    const rect = miku.getBoundingClientRect();
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
-});
-
-document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    
-    let x = e.clientX - offsetX;
-    let y = e.clientY - offsetY;
-
-    const maxX = window.innerWidth - miku.offsetWidth;
-    const maxY = window.innerHeight - miku.offsetHeight;
-    x = Math.max(0, Math.min(x, maxX));
-    y = Math.max(0, Math.min(y, maxY));
-
-    miku.style.left = `${x}px`;
-    miku.style.top = `${y}px`;
-    miku.style.bottom = 'auto';
-    miku.style.right = 'auto';
-});
-
-document.addEventListener('mouseup', () => {
-    if (isDragging) {
-        isDragging = false;
-        miku.style.cursor = 'grab';
-        miku.style.animation = 'flotar 3s ease-in-out infinite'; 
-        mikuSpriteDrag.className = "miku-idle"; 
-    }
-});
-
-// ===== MERMAID =====
+// ===== LIMPIAR MERMAID =====
 function limpiarMermaid(codigo) {
-    let limpio = codigo.trim();
-    limpio = limpio.replace(/```mermaid/g, "").replace(/```/g, "");
-    limpio = limpio.trim();
-    const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey"];
-    for (const palabra of palabrasClave) {
-        const idx = limpio.indexOf(palabra);
-        if (idx !== -1) {
-            limpio = limpio.substring(idx);
-            break;
-        }
+    let limpio = codigo.replace(/```mermaid/g, "").replace(/```/g, "").trim();
+    const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram"];
+    for (let palabra of palabrasClave) {
+        let idx = limpio.indexOf(palabra);
+        if (idx !== -1) return limpio.substring(idx);
     }
     return limpio;
 }
 
-// ===== OPCIONES =====
+// ===== BOTONES DE OPCIONES =====
 function generarBotonesOpciones(texto) {
-    const divBotones = document.createElement("div");
-    divBotones.classList.add("opciones-container");
-    divBotones.style.display = "flex";
-    divBotones.style.gap = "10px";
-    divBotones.style.marginTop = "15px";
+    const div = document.createElement("div");
+    div.style.display = "flex";
+    div.style.gap = "10px";
+    div.style.marginTop = "15px";
 
     if (texto.includes("[1] TODOS LOS PROCESOS") && texto.includes("[2] SE REALIZA")) {
-        const btn1 = document.createElement("button");
-        btn1.className = "btn btn-outline-info btn-sm";
-        btn1.textContent = "1. Rápido";
-        btn1.onclick = () => enviarMensaje("1");
+        let b1 = document.createElement("button");
+        b1.className = "btn btn-outline-info btn-sm";
+        b1.textContent = "1. Rápido";
+        b1.onclick = () => enviarMensaje("1");
 
-        const btn2 = document.createElement("button");
-        btn2.className = "btn btn-outline-info btn-sm";
-        btn2.textContent = "2. Paso a Paso";
-        btn2.onclick = () => enviarMensaje("2");
+        let b2 = document.createElement("button");
+        b2.className = "btn btn-outline-info btn-sm";
+        b2.textContent = "2. Paso a Paso";
+        b2.onclick = () => enviarMensaje("2");
 
-        divBotones.appendChild(btn1);
-        divBotones.appendChild(btn2);
-        return divBotones;
+        div.appendChild(b1); div.appendChild(b2);
+        return div;
     }
 
     if (texto.includes("¿En qué lenguaje de programación deseas el código?")) {
         const lenguajes = ["Python", "Java", "JavaScript", "C++", "C#", "PSeInt"];
-        lenguajes.forEach((lang, index) => {
-            const btn = document.createElement("button");
-            btn.className = "btn btn-outline-info btn-sm";
-            btn.textContent = lang;
-            btn.onclick = () => enviarMensaje((index + 1).toString());
-            divBotones.appendChild(btn);
+        lenguajes.forEach((lang, i) => {
+            let b = document.createElement("button");
+            b.className = "btn btn-outline-info btn-sm";
+            b.textContent = lang;
+            b.onclick = () => enviarMensaje((i + 1).toString());
+            div.appendChild(b);
         });
-
-        const btnOtro = document.createElement("button");
+        let btnOtro = document.createElement("button");
         btnOtro.className = "btn btn-outline-light btn-sm";
         btnOtro.textContent = "Otro";
         btnOtro.onclick = () => { input.value = "7. "; input.focus(); };
-        divBotones.appendChild(btnOtro);
-        return divBotones;
+        div.appendChild(btnOtro);
+        return div;
     }
     return null;
 }
 
-// ===== BLOQUE DE CÓDIGO =====
+// ===== CREAR BLOQUE DE CÓDIGO =====
 function crearBloqueCodigo(codigo, lenguaje) {
     const bloque = document.createElement("div");
     bloque.classList.add("bloque-codigo");
-
-    const barra = document.createElement("div");
-    barra.classList.add("barra-codigo");
-
-    const nombreLenguaje = document.createElement("span");
-    nombreLenguaje.classList.add("lenguaje");
-    nombreLenguaje.textContent = lenguaje || "código";
-
-    const acciones = document.createElement("div");
-    acciones.classList.add("acciones");
-
-    const btnCopiar = document.createElement("button");
-    btnCopiar.textContent = "📋 Copiar";
-    btnCopiar.addEventListener("click", () => {
-        navigator.clipboard.writeText(codigo).then(() => {
-            btnCopiar.textContent = "✅ Copiado";
-            setTimeout(() => (btnCopiar.textContent = "📋 Copiar"), 1500);
-        });
-    });
-
-    acciones.appendChild(btnCopiar);
-    barra.appendChild(nombreLenguaje);
-    barra.appendChild(acciones);
-
-    const pre = document.createElement("pre");
-    const code = document.createElement("code");
-    if (lenguaje && hljs.getLanguage(lenguaje)) {
-        try { code.innerHTML = hljs.highlight(codigo, { language: lenguaje }).value; } catch (e) { code.textContent = codigo; }
-    } else { code.textContent = codigo; }
-    pre.appendChild(code);
-    bloque.appendChild(barra);
-    bloque.appendChild(pre);
+    bloque.innerHTML = `
+        <div class="barra-codigo">
+            <span>${lenguaje || 'código'}</span>
+            <button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)">📋 Copiar</button>
+        </div>
+        <pre><code>${codigo.replace(/</g, "&lt;")}</code></pre>
+    `;
     return bloque;
 }
 
@@ -201,44 +121,40 @@ function crearBloqueCodigo(codigo, lenguaje) {
 function procesarMensaje(textoOriginal) {
     const contenedor = document.createElement("div");
     let texto = textoOriginal;
+    
+    // Evitar menús duplicados
     const preguntaLenguaje = "¿En qué lenguaje de programación deseas el código?";
     const regexDuplicado = new RegExp(`(${preguntaLenguaje}[\\s\\S]*?)${preguntaLenguaje}`, 'g');
     texto = texto.replace(regexDuplicado, preguntaLenguaje);
 
     const regexMermaid = /```mermaid([\s\S]*?)```/g;
     let textoLimpio = texto.replace(regexMermaid, "%%MERMAID_BLOCK%%$1%%END_MERMAID%%");
-
     const partes = textoLimpio.split(/```/);
 
     partes.forEach((parte, i) => {
         if (parte.includes("%%MERMAID_BLOCK%%")) {
-            const codigoMermaid = parte.split("%%MERMAID_BLOCK%%")[1].split("%%END_MERMAID%%")[0].trim();
-            const contenedorMermaid = document.createElement("div");
+            let codigoMermaid = parte.split("%%MERMAID_BLOCK%%")[1].split("%%END_MERMAID%%")[0].trim();
+            let contenedorMermaid = document.createElement("div");
             contenedorMermaid.classList.add("mermaid");
-            contenedorMermaid.style.background = "#0f172a";
-            contenedorMermaid.style.padding = "15px";
-            contenedorMermaid.style.borderRadius = "10px";
-            contenedorMermaid.style.marginTop = "10px";
             contenedorMermaid.textContent = codigoMermaid;
             contenedor.appendChild(contenedorMermaid);
         } 
         else if (i % 2 === 1) {
-            const lineas = parte.split("\n");
-            const lenguaje = lineas[0].trim().toLowerCase();
-            const codigo = lineas.slice(1).join("\n").trim();
+            let lineas = parte.split("\n");
+            let lenguaje = lineas[0].trim().toLowerCase();
+            let codigo = lineas.slice(1).join("\n").trim();
             contenedor.appendChild(crearBloqueCodigo(codigo, lenguaje));
         } 
         else {
             if (parte.trim()) {
-                const html = marked.parse(parte);
-                const div = document.createElement("div");
-                div.innerHTML = html;
+                let div = document.createElement("div");
+                div.innerHTML = marked.parse(parte);
                 contenedor.appendChild(div);
             }
         }
     });
 
-    const botones = generarBotonesOpciones(textoOriginal);
+    let botones = generarBotonesOpciones(textoOriginal);
     if (botones) contenedor.appendChild(botones);
 
     return contenedor;
@@ -253,35 +169,24 @@ function agregarMensaje(texto, tipo) {
         div.appendChild(procesarMensaje(texto));
         ultimoMensajeBot = texto; 
     } else {
-        div.textContent = texto;
-        const btnEditar = document.createElement("button");
-        btnEditar.className = "btn btn-sm btn-link text-white float-end p-0 ms-2";
-        btnEditar.innerHTML = "✏️";
-        btnEditar.title = "Editar mensaje";
-        btnEditar.onclick = () => editarMensaje(div, texto);
-        div.appendChild(btnEditar);
+        div.innerHTML = `<span>${texto}</span> <button class="btn btn-sm btn-link text-white p-0 ms-2" onclick="editarMensaje(this.parentElement, '${texto.replace(/'/g, "\\'")}')">✏️</button>`;
     }
 
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 
+    // Renderizar Mermaid
     const diagramas = div.querySelectorAll(".mermaid");
     diagramas.forEach((d, idx) => {
-        const codigoLimpio = limpiarMermaid(d.textContent);
-        const idUnico = `mermaid-${Date.now()}-${idx}`;
-        if (!codigoLimpio) {
-            d.innerHTML = `<div class="alert alert-warning mt-2">⚠️ Diagrama vacío.</div>`;
-            return;
-        }
-        mermaid.render(idUnico, codigoLimpio).then(({ svg }) => {
-            d.innerHTML = svg;
-        }).catch(() => {
-            d.innerHTML = `<div class="alert alert-warning mt-2">⚠️ Error al dibujar el diagrama.</div>`;
-        });
+        let codigoLimpio = limpiarMermaid(d.textContent);
+        if (!codigoLimpio) return;
+        mermaid.render(`m-${Date.now()}-${idx}`, codigoLimpio)
+            .then(res => d.innerHTML = res.svg)
+            .catch(() => d.innerHTML = "<div class='alert alert-warning mt-2'>⚠️ Error al dibujar diagrama.</div>");
     });
 }
 
-// ===== EDITAR MENSAJE =====
+// ===== LÓGICA DE EDITAR =====
 function editarMensaje(divMensaje, textoOriginal) {
     if (enviando) return;
     input.value = textoOriginal;
@@ -308,8 +213,7 @@ function mostrarEscribiendo() {
 }
 
 function quitarEscribiendo() {
-    const el = document.getElementById("escribiendo");
-    if (el) el.remove();
+    document.getElementById("escribiendo")?.remove();
 }
 
 // ===== ENVIAR MENSAJE =====
@@ -323,19 +227,19 @@ async function enviarMensaje(texto) {
     mostrarEscribiendo();
 
     try {
-        const respuesta = await fetch("/chat", {
+        const res = await fetch("/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ mensaje: texto })
         });
-        const data = await respuesta.json();
+        const data = await res.json();
         quitarEscribiendo();
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
-            hablarTexto(data.respuesta); 
+            hablarTexto(data.respuesta); // Miku habla
         } else {
-            agregarMensaje("⚠️ " + (data.error || "Error desconocido"), "error");
+            agregarMensaje("⚠️ " + data.error, "error");
         }
     } catch (error) {
         quitarEscribiendo();
@@ -353,14 +257,14 @@ async function iniciarChat() {
     mostrarEscribiendo();
 
     try {
-        const respuesta = await fetch("/iniciar", { method: "POST" });
-        const data = await respuesta.json();
+        const res = await fetch("/iniciar", { method: "POST" });
+        const data = await res.json();
         quitarEscribiendo();
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
         } else {
-            agregarMensaje("⚠️ No se pudo iniciar el chat: " + data.error, "error");
+            agregarMensaje("⚠️ " + data.error, "error");
         }
     } catch (error) {
         quitarEscribiendo();
@@ -370,9 +274,9 @@ async function iniciarChat() {
 
 // ===== SELECCIÓN DE IA =====
 async function iniciarIA(iaSeleccionada) {
-    menuIa.style.display = "none";
-    chat.style.display = "flex";
-    areaEntrada.style.display = "block";
+    // Cambiar el color del botón seleccionado
+    document.querySelectorAll("#btn-groq, #btn-gemini").forEach(b => b.classList.remove("active"));
+    document.getElementById(`btn-${iaSeleccionada}`).classList.add("active");
     
     await fetch("/seleccionar_ia", {
         method: "POST",
@@ -391,12 +295,11 @@ input.addEventListener("keydown", (e) => {
         enviarMensaje(input.value);
     }
 });
-
 btnReiniciar.addEventListener("click", () => {
     if (confirm("¿Reiniciar el chat? Se perderá el problema actual.")) {
-        chat.innerHTML = "";
-        chat.style.display = "none";
-        areaEntrada.style.display = "none";
-        menuIa.style.display = "flex";
+        iniciarChat();
     }
 });
+
+// Iniciar el chat automáticamente al cargar la página con Groq
+window.addEventListener("load", () => iniciarIA('groq'));
