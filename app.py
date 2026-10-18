@@ -1,5 +1,5 @@
 # ============================================
-# BOT DE ALGORITMOS - BACKEND (Groq + Gemini)
+# BOT DE ALGORITMOS - BACKEND (Groq + Gemini Fallback)
 # ============================================
 
 import os
@@ -103,13 +103,13 @@ Antes de generar cualquier código, despliega EXACTAMENTE este menú UNA SOLA VE
 ==================================================
 Para la Etapa 4, usa SIEMPRE esta estructura:
 
-PAPOImermaid
+```mermaid
 flowchart TD
     A([Inicio]) --> B[Proceso]
     B --> C{¿Condición?}
     C -->|Sí| D[Acción]
     C -->|No| E([Fin])
-PAPOI
+```
 
 Reglas: Usa flowchart TD al inicio. Identificadores únicos (A, B, C...). Código sintácticamente válido.
 
@@ -129,7 +129,7 @@ estado = {
     "modo_admin": False,
     "iniciado": False,
     "paso_actual": "inicio",
-    "ia_actual": "groq" # Por defecto
+    "ia_actual": "groq"
 }
 
 # ===== FUNCIONES DE CONEXIÓN =====
@@ -153,7 +153,7 @@ def generar_respuesta_gemini(historial):
             contents.append({"role": "model", "parts": [{"text": msg["content"]}]})
     
     respuesta = client.models.generate_content(
-        model="gemini-3.8-flash", # <--- MODELO CORREGIDO
+        model="gemini-2.5-flash", 
         contents=contents
     )
     return respuesta.text
@@ -166,21 +166,32 @@ def index():
 @app.route("/seleccionar_ia", methods=["POST"])
 def seleccionar_ia():
     data = request.get_json()
-    ia = data.get("ia", "groq")
-    estado["ia_actual"] = ia
+    estado["ia_actual"] = data.get("ia", "groq")
     estado["iniciado"] = False
     estado["historial"] = []
-    return jsonify({"ok": True, "mensaje": f"Usando {ia.upper()}"})
+    return jsonify({"ok": True})
 
 @app.route("/iniciar", methods=["POST"])
 def iniciar():
     try:
         estado["historial"] = [{"role": "system", "content": PROMPT_MAESTRO}]
+        texto = ""
         
-        if estado["ia_actual"] == "groq":
-            texto = generar_respuesta_groq(estado["historial"])
+        # Sistema Fallback (Respaldo)
+        if estado["ia_actual"] == "gemini":
+            try:
+                texto = generar_respuesta_gemini(estado["historial"])
+            except Exception as e:
+                print(f"Fallo Gemini ({e}), usando Groq de respaldo...")
+                texto = generar_respuesta_groq(estado["historial"])
+                estado["ia_actual"] = "groq"
         else:
-            texto = generar_respuesta_gemini(estado["historial"])
+            try:
+                texto = generar_respuesta_groq(estado["historial"])
+            except Exception as e:
+                print(f"Fallo Groq ({e}), usando Gemini de respaldo...")
+                texto = generar_respuesta_gemini(estado["historial"])
+                estado["ia_actual"] = "gemini"
 
         estado["historial"].append({"role": "assistant", "content": texto})
         estado["iniciado"] = True
@@ -245,19 +256,30 @@ def chat():
         else:
             return jsonify({"ok": True, "respuesta": "Por favor, escribe un problema un poco más detallado para poder ayudarte."})
 
-    # ===== ENVIAR A LA IA CORRESPONDIENTE =====
+    # ===== ENVIAR A LA IA CORRESPONDIENTE (CON FALLBACK) =====
     try:
         estado["historial"].append({"role": "user", "content": entrada})
+        texto = ""
         
-        if estado["ia_actual"] == "groq":
-            texto = generar_respuesta_groq(estado["historial"])
+        if estado["ia_actual"] == "gemini":
+            try:
+                texto = generar_respuesta_gemini(estado["historial"])
+            except Exception as e:
+                print(f"Fallo Gemini en chat ({e}), usando Groq...")
+                texto = generar_respuesta_groq(estado["historial"])
+                estado["ia_actual"] = "groq"
         else:
-            texto = generar_respuesta_gemini(estado["historial"])
+            try:
+                texto = generar_respuesta_groq(estado["historial"])
+            except Exception as e:
+                print(f"Fallo Groq en chat ({e}), usando Gemini...")
+                texto = generar_respuesta_gemini(estado["historial"])
+                estado["ia_actual"] = "gemini"
 
         estado["historial"].append({"role": "assistant", "content": texto})
         return jsonify({"ok": True, "respuesta": texto})
     except Exception as e:
-        return jsonify({"ok": False, "error": f"Error en {estado['ia_actual']}: {str(e)}"}), 500
+        return jsonify({"ok": False, "error": f"Ambas IAs fallaron: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
