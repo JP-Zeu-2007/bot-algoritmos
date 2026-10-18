@@ -1,130 +1,126 @@
-/* ============================================
-   ESTILOS MIKU AI & SPRITE
-   ============================================ */
-
 body {
     font-family: 'Outfit', sans-serif;
     background: #050914; 
     margin: 0;
+    overflow: hidden; /* Evita scroll extra */
 }
 
-/* ===== ÁREA DE CHAT ===== */
-#chat {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+#chat { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
 }
 
-.mensaje {
-    max-width: 85%;
-    padding: 15px 20px;
-    border-radius: 15px;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    animation: aparecer 0.3s ease;
+.mensaje { 
+    max-width: 85%; 
+    padding: 15px 20px; 
+    border-radius: 15px; 
+    font-size: 0.95rem; 
+    line-height: 1.6; 
+    animation: aparecer 0.3s ease; 
 }
 
-@keyframes aparecer {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes aparecer { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
 }
 
-.mensaje.usuario {
-    align-self: flex-end;
-    background: linear-gradient(135deg, #00b4d8, #0077b6);
-    color: white;
-    border-bottom-right-radius: 4px;
-    box-shadow: 0 4px 15px rgba(0, 180, 216, 0.3);
+.mensaje.usuario { 
+    align-self: flex-end; 
+    background: linear-gradient(135deg, #00b4d8, #0077b6); 
+    color: white; 
+    border-bottom-right-radius: 4px; 
 }
 
-.mensaje.bot {
-    align-self: flex-start;
-    background: #1e293b;
-    color: #e2e8f0;
-    border: 1px solid #334155;
-    border-bottom-left-radius: 4px;
-    width: 100%;
-    max-width: 100%;
+.mensaje.bot { 
+    align-self: flex-start; 
+    background: #1e293b; 
+    color: #e2e8f0; 
+    border: 1px solid #334155; 
+    border-bottom-left-radius: 4px; 
+    width: 100%; 
+    max-width: 100%; 
 }
 
-.mensaje.error {
-    align-self: center;
-    background: #7f1d1d;
-    color: #fca5a5;
-    border: 1px solid #991b1b;
+.mensaje.error { 
+    align-self: center; 
+    background: #7f1d1d; 
+    color: #fca5a5; 
+    border: 1px solid #991b1b; 
 }
 
-/* ===== MARKDOWN Y CÓDIGO ===== */
-.mensaje.bot h1, .mensaje.bot h2, .mensaje.bot h3 {
-    color: #00b4d8;
-    margin-top: 15px;
+.mensaje.bot h1, .mensaje.bot h2, .mensaje.bot h3 { 
+    color: #00b4d8; 
+    margin-top: 15px; 
 }
 
-.bloque-codigo {
-    background: #0f172a;
-    border-radius: 10px;
-    margin: 15px 0;
-    border: 1px solid #334155;
-    overflow: hidden;
+.bloque-codigo { 
+    background: #0f172a; 
+    border-radius: 10px; 
+    margin: 15px 0; 
+    border: 1px solid #334155; 
+    overflow: hidden; 
 }
 
-.bloque-codigo .barra-codigo {
-    background: #1e293b;
-    padding: 10px 15px;
-    color: #94a3b8;
-    font-size: 0.8rem;
-    display: flex;
-    justify-content: space-between;
+.bloque-codigo .barra-codigo { 
+    background: #1e293b; 
+    padding: 10px 15px; 
+    color: #94a3b8; 
+    font-size: 0.8rem; 
+    display: flex; 
+    justify-content: space-between; 
 }
 
-.bloque-codigo .acciones button {
+.bloque-codigo .barra-codigo button {
     background: transparent;
     border: 1px solid #475569;
     color: #cbd5e1;
     border-radius: 5px;
-    padding: 3px 8px;
-    font-size: 0.75rem;
+    padding: 2px 8px;
     cursor: pointer;
-    transition: 0.2s;
 }
 
-.bloque-codigo .acciones button:hover { background: #00b4d8; color: white; border-color: #00b4d8; }
-.bloque-codigo pre { margin: 0; padding: 15px; color: #e2e8f0; overflow-x: auto; font-family: monospace; }
-
-#menu-ia button:hover { transform: translateY(-5px); transition: 0.2s; }
+.bloque-codigo pre { 
+    margin: 0; 
+    padding: 15px; 
+    color: #e2e8f0; 
+    overflow-x: auto; 
+}
 
 /* ============================================
-   ANIMACIÓN Y SPRITE DE MIKU
+   MIKU - CAMINANDO POR EL SUELO
    ============================================ */
 
-/* El contenedor general flota */
 #miku-contenedor {
-    animation: flotar 3s ease-in-out infinite;
+    position: fixed;
+    bottom: 0;
+    width: 120px;
+    height: 120px;
+    z-index: 1000;
+    cursor: pointer;
+    user-select: none;
+    /* Animación de lado a lado */
+    animation: patrullar 20s linear infinite alternate;
 }
 
-@keyframes flotar {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
+@keyframes patrullar {
+    0% { left: 0px; }
+    100% { left: calc(100% - 120px); }
 }
 
-/* El Sprite en sí (con ajuste anti-cortes) */
 #miku-sprite {
     width: 100%;
     height: 100%;
-    background-image: url('/static/miku_sprite.png');
-    /* background-size con un 5% extra para evitar que se asomen los bordes de otros cuadros */
-    background-size: 405% 405%; 
     background-repeat: no-repeat;
+    background-size: 400% 100%; /* 4 columnas horizontales */
     filter: drop-shadow(0px 0px 10px #00ffff);
 }
 
-/* 1. ESTADO QUIETO (Fila 3, Columna 2) */
-.miku-idle {
-    background-position: 33.333% 66.666%;
+.miku-caminando {
+    background-image: url('/static/miku_caminar.png');
+    animation: caminar 0.6s steps(1) infinite;
 }
 
-/* 2. ANIMACIÓN CAMINAR (Fila 1: 4 pasos) */
 @keyframes caminar {
     0%   { background-position: 0% 0%; }
     25%  { background-position: 33.333% 0%; }
@@ -133,26 +129,21 @@ body {
     100% { background-position: 0% 0%; }
 }
 
-.miku-caminando {
-    animation: caminar 0.6s steps(1) infinite;
-}
-
-/* 3. ANIMACIÓN HABLAR (Fila 3: Boca abierta y cerrada) */
-@keyframes hablar-boca {
-    0%   { background-position: 0% 66.666%; }     /* Boca Abierta */
-    50%  { background-position: 33.333% 66.666%; } /* Boca Cerrada */
-    100% { background-position: 0% 66.666%; }
-}
-
 .miku-hablando {
-    animation: hablar-boca 0.25s steps(1) infinite;
+    background-image: url('/static/miku_hablar.png');
+    animation: hablar-boca 0.3s steps(1) infinite;
 }
 
-/* El globo de diálogo de Miku */
+@keyframes hablar-boca {
+    0%   { background-position: 0% 0%; }
+    50%  { background-position: 33.333% 0%; }
+    100% { background-position: 0% 0%; }
+}
+
 .miku-bocadillo {
     position: absolute;
     bottom: 110%;
-    right: 0;
+    left: 0;
     background: #0f172a;
     color: #00ffff;
     border: 1px solid #00b4d8;
@@ -161,5 +152,4 @@ body {
     font-size: 0.8rem;
     width: 200px;
     box-shadow: 0 4px 15px rgba(0, 180, 216, 0.5);
-    margin-bottom: 10px;
 }
