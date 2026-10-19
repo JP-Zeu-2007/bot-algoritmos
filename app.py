@@ -106,7 +106,7 @@ Antes de generar cualquier código, despliega EXACTAMENTE este menú UNA SOLA VE
 ==================================================
 Para la Etapa 4, usa SIEMPRE esta estructura:
 
-```Imermaid
+```mermaid
 flowchart TD
     A([Inicio]) --> B[Proceso]
     B --> C{¿Condición?}
@@ -284,7 +284,7 @@ def chat():
     except Exception as e:
         return jsonify({"ok": False, "error": f"Ambas IAs fallaron: {str(e)}"}), 500
 
-# ===== RUTA PARA VOZ DE MIKU (FISH AUDIO) =====
+# ===== RUTA PARA VOZ DE MIKU (FISH AUDIO FREE) =====
 @app.route("/hablar", methods=["POST"])
 def hablar():
     data = request.get_json()
@@ -293,6 +293,7 @@ def hablar():
     if not texto:
         return jsonify({"ok": False, "error": "Texto vacío"}), 400
 
+    # Limpiamos el texto para que Fish Audio no lea símbolos raros
     texto_limpio = texto.replace('*', '').replace('#', '').replace('`', '')[:300]
 
     try:
@@ -303,8 +304,9 @@ def hablar():
         }
         payload = {
             "text": texto_limpio,
-            "reference_id": "7f92f8afb8ec43bf8143f7c3f3158606", 
-            "format": "mp3"
+            "reference_id": "7f92f8afb8ec43bf8143f7c3f3158606", # ID de la voz
+            "format": "mp3",
+            "model": "s2.1-pro-free" # MODELO GRATUITO ACTIVADO
         }
         
         response = requests.post(url, json=payload, headers=headers)
