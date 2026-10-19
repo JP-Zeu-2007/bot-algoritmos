@@ -1,8 +1,10 @@
 # ============================================
-# BOT DE ALGORITMOS - BACKEND (Groq + Gemini Fallback)
+# BOT DE ALGORITMOS - BACKEND (Groq + Gemini + Fish Audio)
 # ============================================
 
 import os
+import base64
+import requests
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -13,6 +15,7 @@ load_dotenv()
 # ===== API KEYS =====
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+FISH_AUDIO_API_KEY = os.getenv("FISH_AUDIO_API_KEY")
 
 app = Flask(__name__)
 
@@ -103,7 +106,7 @@ Antes de generar cualquier código, despliega EXACTAMENTE este menú UNA SOLA VE
 ==================================================
 Para la Etapa 4, usa SIEMPRE esta estructura:
 
-```mermaid
+```Imermaid
 flowchart TD
     A([Inicio]) --> B[Proceso]
     B --> C{¿Condición?}
@@ -256,7 +259,7 @@ def chat():
         else:
             return jsonify({"ok": True, "respuesta": "Por favor, escribe un problema un poco más detallado para poder ayudarte."})
 
-    # ===== ENVIAR A LA IA CORRESPONDIENTE (CON FALLBACK) =====
+    # ===== ENVIAR A LA IA =====
     try:
         estado["historial"].append({"role": "user", "content": entrada})
         texto = ""
@@ -280,6 +283,40 @@ def chat():
         return jsonify({"ok": True, "respuesta": texto})
     except Exception as e:
         return jsonify({"ok": False, "error": f"Ambas IAs fallaron: {str(e)}"}), 500
+
+# ===== RUTA PARA VOZ DE MIKU (FISH AUDIO) =====
+@app.route("/hablar", methods=["POST"])
+def hablar():
+    data = request.get_json()
+    texto = data.get("texto", "")
+    
+    if not texto:
+        return jsonify({"ok": False, "error": "Texto vacío"}), 400
+
+    texto_limpio = texto.replace('*', '').replace('#', '').replace('`', '')[:300]
+
+    try:
+        url = "https://api.fish.audio/v1/tts"
+        headers = {
+            "Authorization": f"Bearer {FISH_AUDIO_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "text": texto_limpio,
+            "reference_id": "7f92f8afb8ec43bf8143f7c3f3158606", 
+            "format": "mp3"
+        }
+        
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            audio_base64 = base64.b64encode(response.content).decode('utf-8')
+            return jsonify({"ok": True, "audio": audio_base64})
+        else:
+            return jsonify({"ok": False, "error": f"Fish Audio Error: {response.text}"}), 500
+            
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
