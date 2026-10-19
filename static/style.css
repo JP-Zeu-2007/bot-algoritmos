@@ -1,8 +1,12 @@
+/* ============================================
+   ESTILOS GENERALES Y CHAT
+   ============================================ */
+
 body {
     font-family: 'Outfit', sans-serif;
     background: #050914; 
     margin: 0;
-    overflow: hidden; /* Evita scroll extra */
+    overflow: hidden; /* Evita scroll extra por Miku */
 }
 
 #chat { 
@@ -49,6 +53,7 @@ body {
     border: 1px solid #991b1b; 
 }
 
+/* ===== MARKDOWN Y CÓDIGO ===== */
 .mensaje.bot h1, .mensaje.bot h2, .mensaje.bot h3 { 
     color: #00b4d8; 
     margin-top: 15px; 
@@ -88,9 +93,10 @@ body {
 }
 
 /* ============================================
-   MIKU - CAMINANDO POR EL SUELO
+   MIKU - ANIMACIÓN, VOLTEO Y FLOTADO
    ============================================ */
 
+/* Contenedor de Miku */
 #miku-contenedor {
     position: fixed;
     bottom: 0;
@@ -99,23 +105,37 @@ body {
     z-index: 1000;
     cursor: pointer;
     user-select: none;
-    /* Animación de lado a lado */
+    /* Animación de ir de izquierda a derecha y volver */
     animation: patrullar 20s linear infinite alternate;
 }
 
+/* Hace que Miku camine de lado a lado */
 @keyframes patrullar {
     0% { left: 0px; }
     100% { left: calc(100% - 120px); }
 }
 
+/* Cuando va hacia la derecha */
+#miku-sprite.mirando-derecha {
+    transform: scaleX(1);
+}
+
+/* Cuando va hacia la izquierda (efecto espejo) */
+#miku-sprite.mirando-izquierda {
+    transform: scaleX(-1);
+}
+
+/* El Sprite en sí (con la animación de flote) */
 #miku-sprite {
     width: 100%;
     height: 100%;
     background-repeat: no-repeat;
-    background-size: 400% 100%; /* 4 columnas horizontales */
-    filter: drop-shadow(0px 0px 10px #00ffff);
+    background-size: 400% 100%;
+    filter: drop-shadow(0px 0px 10px #00b4d8);
+    transition: transform 0.1s;
 }
 
+/* Animación de caminar (sprites) */
 .miku-caminando {
     background-image: url('/static/miku_caminar.png');
     animation: caminar 0.6s steps(1) infinite;
@@ -129,6 +149,7 @@ body {
     100% { background-position: 0% 0%; }
 }
 
+/* Animación de hablar (sprites de boca) */
 .miku-hablando {
     background-image: url('/static/miku_hablar.png');
     animation: hablar-boca 0.3s steps(1) infinite;
@@ -140,6 +161,7 @@ body {
     100% { background-position: 0% 0%; }
 }
 
+/* El bocadillo de diálogo cuando habla */
 .miku-bocadillo {
     position: absolute;
     bottom: 110%;
@@ -152,4 +174,17 @@ body {
     font-size: 0.8rem;
     width: 200px;
     box-shadow: 0 4px 15px rgba(0, 180, 216, 0.5);
+}
+
+/* ============================================
+   BOTONES DE LA INTERFAZ
+   ============================================ */
+
+#btn-groq, #btn-gemini {
+    transition: all 0.2s;
+}
+
+#btn-groq:hover, #btn-gemini:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(255,255,255,0.1);
 }
