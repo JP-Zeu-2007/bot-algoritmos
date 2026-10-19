@@ -9,46 +9,66 @@ const btnReiniciar = document.getElementById("btn-reiniciar");
 
 let enviando = false;
 let ultimoMensajeBot = "";
-const sintetizador = window.speechSynthesis;
-
-// Rutas de los sprites de Miku
-const RUTA_CAMINAR = "/static/miku_caminar.png";
-const RUTA_HABLAR = "/static/miku_hablar.png";
+let audioActual = null; // Guarda el audio actual
 
 marked.setOptions({ breaks: true, gfm: true });
 
-// ===== SISTEMA DE VOZ Y ANIMACIÓN DE MIKU =====
-function hablarTexto(texto) {
-    if (!sintetizador) return;
-    sintetizador.cancel();
-
-    // Limpiar el texto de Markdown para que no lea símbolos raros
-    let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 200); 
+// ===== SISTEMA DE VOZ DE MIKU (FISH AUDIO) =====
+async function hablarTexto(texto) {
     const bocadillo = document.getElementById("miku-texto");
     const mikuSprite = document.getElementById("miku-sprite");
 
-    // Mostrar bocadillo y activar animación de hablar
+    let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 50); 
+    
     if (bocadillo) {
-        bocadillo.textContent = "🎤 " + textoLimpio.substring(0, 35) + "...";
+        bocadillo.textContent = "🎤 " + textoLimpio + "...";
         bocadillo.style.display = "block";
     }
     if (mikuSprite) mikuSprite.className = "miku-hablando";
 
-    const utterance = new SpeechSynthesisUtterance(textoLimpio);
-    utterance.lang = 'es-ES'; 
-    utterance.pitch = 1.5; // Tono agudo
-    utterance.rate = 1.1;  
+    try {
+        const res = await fetch("/hablar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ texto: texto })
+        });
+        
+        const data = await res.json();
 
-    utterance.onend = () => { 
-        if (bocadillo) bocadillo.style.display = "none"; 
-        if (mikuSprite) mikuSprite.className = "miku-caminando"; // Vuelve a caminar
-    };
-    
-    sintetizador.speak(utterance);
+        if (data.ok) {
+            if (audioActual) {
+                audioActual.pause();
+                audioActual.currentTime = 0;
+            }
+
+            audioActual = new Audio("data:audio/mp3;base64," + data.audio);
+            
+            audioActual.onended = () => {
+                if (bocadillo) bocadillo.style.display = "none";
+                if (mikuSprite) mikuSprite.className = "miku-caminando";
+            };
+
+            audioActual.play();
+
+        } else {
+            console.error("Error de voz:", data.error);
+            if (bocadillo) bocadillo.style.display = "none";
+            if (mikuSprite) mikuSprite.className = "miku-caminando";
+        }
+    } catch (error) {
+        console.error("Error de red al pedir voz:", error);
+        if (bocadillo) bocadillo.style.display = "none";
+        if (mikuSprite) mikuSprite.className = "miku-caminando";
+    }
 }
 
 function hablarUltimoMensaje() {
-    hablarTexto(ultimoMensajeBot || "Hola, soy Miku. ¡Hazme una pregunta!");
+    if (ultimoMensajeBot) {
+        hablarTexto(ultimoMensajeBot);
+    } else {
+        // Texto de prueba si haces clic al inicio
+        hablarTexto("Hola, soy Miku. ¡Hazme una pregunta!"); 
+    }
 }
 
 // ===== LIMPIAR MERMAID =====
@@ -122,7 +142,6 @@ function procesarMensaje(textoOriginal) {
     const contenedor = document.createElement("div");
     let texto = textoOriginal;
     
-    // Evitar menús duplicados
     const preguntaLenguaje = "¿En qué lenguaje de programación deseas el código?";
     const regexDuplicado = new RegExp(`(${preguntaLenguaje}[\\s\\S]*?)${preguntaLenguaje}`, 'g');
     texto = texto.replace(regexDuplicado, preguntaLenguaje);
@@ -175,7 +194,6 @@ function agregarMensaje(texto, tipo) {
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 
-    // Renderizar Mermaid
     const diagramas = div.querySelectorAll(".mermaid");
     diagramas.forEach((d, idx) => {
         let codigoLimpio = limpiarMermaid(d.textContent);
@@ -237,7 +255,7 @@ async function enviarMensaje(texto) {
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
-            hablarTexto(data.respuesta); // Miku habla
+            hablarTexto(data.respuesta); // Miku habla con Fish Audio
         } else {
             agregarMensaje("⚠️ " + data.error, "error");
         }
@@ -274,7 +292,6 @@ async function iniciarChat() {
 
 // ===== SELECCIÓN DE IA =====
 async function iniciarIA(iaSeleccionada) {
-    // Cambiar el color del botón seleccionado
     document.querySelectorAll("#btn-groq, #btn-gemini").forEach(b => b.classList.remove("active"));
     document.getElementById(`btn-${iaSeleccionada}`).classList.add("active");
     
@@ -301,5 +318,4 @@ btnReiniciar.addEventListener("click", () => {
     }
 });
 
-// Iniciar el chat automáticamente al cargar la página con Groq
-window.addEventListener("load", () => iniciarIA('groq'));
+window.addEventListener("load", () => iniciarChat());
