@@ -6,38 +6,67 @@ const chat = document.getElementById("chat");
 const input = document.getElementById("input-mensaje");
 const btnEnviar = document.getElementById("btn-enviar");
 const btnReiniciar = document.getElementById("btn-reiniciar");
+const mikuContenedor = document.getElementById("miku-contenedor");
+const mikuSprite = document.getElementById("miku-sprite");
 
 let enviando = false;
 let ultimoMensajeBot = "";
 
-// ===== SISTEMA DE VOZ NATIVA (SIMULANDO A MIKU) =====
+// ===== LÓGICA PARA VOLTEAR A MIKU SEGÚN SU POSICIÓN =====
+// Esta función revisa constantemente dónde está Miku en la pantalla
+let ultimaPosicionX = 0;
+function revisarDireccionMiku() {
+    const rect = mikuContenedor.getBoundingClientRect();
+    const xActual = rect.left;
+
+    // Si se está moviendo hacia la izquierda (xActual es menor a la anterior)
+    if (xActual < ultimaPosicionX) {
+        mikuSprite.classList.remove("mirando-derecha");
+        mikuSprite.classList.add("mirando-izquierda");
+    } 
+    // Si se está moviendo hacia la derecha (xActual es mayor)
+    else if (xActual > ultimaPosicionX) {
+        mikuSprite.classList.remove("mirando-izquierda");
+        mikuSprite.classList.add("mirando-derecha");
+    }
+    
+    ultimaPosicionX = xActual;
+    requestAnimationFrame(revisarDireccionMiku); // Bucle infinito para revisar
+}
+
+// Iniciamos la revisión cuando carga la página
+window.addEventListener('load', () => {
+    revisarDireccionMiku();
+    iniciarChat(); // <-- El inicio del chat se queda aquí
+});
+
+
+// ===== SISTEMA DE VOZ NATIVA =====
 function hablarTexto(texto) {
     if (!window.speechSynthesis) return;
-    
-    // Detener cualquier voz anterior
     window.speechSynthesis.cancel();
 
-    // Limpiar el texto para que no lea los símbolos de Markdown
     let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 250); 
-    
     const bocadillo = document.getElementById("miku-texto");
-    const mikuSprite = document.getElementById("miku-sprite");
 
     if (bocadillo) {
         bocadillo.textContent = "🎤 " + textoLimpio.substring(0, 35) + "...";
         bocadillo.style.display = "block";
     }
-    if (mikuSprite) mikuSprite.className = "miku-hablando";
+    
+    // Quitamos el "caminando" para que no interfiera con el habla
+    mikuSprite.classList.remove("miku-caminando");
+    mikuSprite.classList.add("miku-hablando");
 
     const utterance = new SpeechSynthesisUtterance(textoLimpio);
     utterance.lang = 'es-ES'; 
-    // TRUCO: Subimos el tono (pitch) y la velocidad para que suene "anime"
     utterance.pitch = 1.8; 
     utterance.rate = 1.2;  
 
     utterance.onend = () => { 
         if (bocadillo) bocadillo.style.display = "none"; 
-        if (mikuSprite) mikuSprite.className = "miku-caminando"; 
+        mikuSprite.classList.remove("miku-hablando");
+        mikuSprite.classList.add("miku-caminando"); 
     };
     
     window.speechSynthesis.speak(utterance);
@@ -235,7 +264,7 @@ async function enviarMensaje(texto) {
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
-            hablarTexto(data.respuesta); // Activa la voz
+            hablarTexto(data.respuesta);
         } else {
             agregarMensaje("⚠️ " + data.error, "error");
         }
@@ -297,20 +326,3 @@ btnReiniciar.addEventListener("click", () => {
         iniciarChat();
     }
 });
-
-// ===== TRUCO PARA DESBLOQUEAR EL AUDIO EN EL NAVEGADOR =====
-let audioDesbloqueado = false;
-
-document.addEventListener("click", () => {
-    if (!audioDesbloqueado && window.speechSynthesis) {
-        // Al hacer el primer clic, forzamos al navegador a activar la voz
-        window.speechSynthesis.cancel(); 
-        const utterance = new SpeechSynthesisUtterance(" ");
-        window.speechSynthesis.speak(utterance);
-        audioDesbloqueado = true;
-        console.log("Audio desbloqueado.");
-    }
-});
-
-// Iniciar el chat al cargar la página
-window.addEventListener("load", () => iniciarChat());
