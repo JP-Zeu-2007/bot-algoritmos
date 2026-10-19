@@ -9,65 +9,45 @@ const btnReiniciar = document.getElementById("btn-reiniciar");
 
 let enviando = false;
 let ultimoMensajeBot = "";
-let audioActual = null; // Guarda el audio actual
 
-marked.setOptions({ breaks: true, gfm: true });
+// ===== SISTEMA DE VOZ NATIVA (SIMULANDO A MIKU) =====
+function hablarTexto(texto) {
+    if (!window.speechSynthesis) return;
+    
+    // Detener cualquier voz anterior
+    window.speechSynthesis.cancel();
 
-// ===== SISTEMA DE VOZ DE MIKU (FISH AUDIO) =====
-async function hablarTexto(texto) {
+    // Limpiar el texto para que no lea los símbolos de Markdown
+    let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 250); 
+    
     const bocadillo = document.getElementById("miku-texto");
     const mikuSprite = document.getElementById("miku-sprite");
 
-    let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 50); 
-    
     if (bocadillo) {
-        bocadillo.textContent = "🎤 " + textoLimpio + "...";
+        bocadillo.textContent = "🎤 " + textoLimpio.substring(0, 35) + "...";
         bocadillo.style.display = "block";
     }
     if (mikuSprite) mikuSprite.className = "miku-hablando";
 
-    try {
-        const res = await fetch("/hablar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ texto: texto })
-        });
-        
-        const data = await res.json();
+    const utterance = new SpeechSynthesisUtterance(textoLimpio);
+    utterance.lang = 'es-ES'; 
+    // TRUCO: Subimos el tono (pitch) y la velocidad para que suene "anime"
+    utterance.pitch = 1.8; 
+    utterance.rate = 1.2;  
 
-        if (data.ok) {
-            if (audioActual) {
-                audioActual.pause();
-                audioActual.currentTime = 0;
-            }
-
-            audioActual = new Audio("data:audio/mp3;base64," + data.audio);
-            
-            audioActual.onended = () => {
-                if (bocadillo) bocadillo.style.display = "none";
-                if (mikuSprite) mikuSprite.className = "miku-caminando";
-            };
-
-            audioActual.play();
-
-        } else {
-            console.error("Error de voz:", data.error);
-            if (bocadillo) bocadillo.style.display = "none";
-            if (mikuSprite) mikuSprite.className = "miku-caminando";
-        }
-    } catch (error) {
-        console.error("Error de red al pedir voz:", error);
-        if (bocadillo) bocadillo.style.display = "none";
-        if (mikuSprite) mikuSprite.className = "miku-caminando";
-    }
+    utterance.onend = () => { 
+        if (bocadillo) bocadillo.style.display = "none"; 
+        if (mikuSprite) mikuSprite.className = "miku-caminando"; 
+    };
+    
+    window.speechSynthesis.speak(utterance);
 }
 
 function hablarUltimoMensaje() {
     if (ultimoMensajeBot) {
         hablarTexto(ultimoMensajeBot);
     } else {
-        // Texto de prueba si haces clic al inicio
-        hablarTexto("Hola, soy Miku. ¡Hazme una pregunta!"); 
+        hablarTexto("Hola, soy Miku. ¡Hazme una pregunta!");
     }
 }
 
@@ -255,7 +235,7 @@ async function enviarMensaje(texto) {
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
-            hablarTexto(data.respuesta); // Miku habla con Fish Audio
+            hablarTexto(data.respuesta); // Activa la voz del navegador
         } else {
             agregarMensaje("⚠️ " + data.error, "error");
         }
