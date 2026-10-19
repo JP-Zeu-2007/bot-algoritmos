@@ -235,7 +235,7 @@ async function enviarMensaje(texto) {
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
-            hablarTexto(data.respuesta); // Activa la voz del navegador
+            hablarTexto(data.respuesta); // Activa la voz
         } else {
             agregarMensaje("⚠️ " + data.error, "error");
         }
@@ -298,4 +298,19 @@ btnReiniciar.addEventListener("click", () => {
     }
 });
 
+// ===== TRUCO PARA DESBLOQUEAR EL AUDIO EN EL NAVEGADOR =====
+let audioDesbloqueado = false;
+
+document.addEventListener("click", () => {
+    if (!audioDesbloqueado && window.speechSynthesis) {
+        // Al hacer el primer clic, forzamos al navegador a activar la voz
+        window.speechSynthesis.cancel(); 
+        const utterance = new SpeechSynthesisUtterance(" ");
+        window.speechSynthesis.speak(utterance);
+        audioDesbloqueado = true;
+        console.log("Audio desbloqueado.");
+    }
+});
+
+// Iniciar el chat al cargar la página
 window.addEventListener("load", () => iniciarChat());
