@@ -180,7 +180,6 @@ def iniciar():
         estado["historial"] = [{"role": "system", "content": PROMPT_MAESTRO}]
         texto = ""
         
-        # Sistema Fallback (Respaldo)
         if estado["ia_actual"] == "gemini":
             try:
                 texto = generar_respuesta_gemini(estado["historial"])
@@ -268,14 +267,12 @@ def chat():
             try:
                 texto = generar_respuesta_gemini(estado["historial"])
             except Exception as e:
-                print(f"Fallo Gemini en chat ({e}), usando Groq...")
                 texto = generar_respuesta_groq(estado["historial"])
                 estado["ia_actual"] = "groq"
         else:
             try:
                 texto = generar_respuesta_groq(estado["historial"])
             except Exception as e:
-                print(f"Fallo Groq en chat ({e}), usando Gemini...")
                 texto = generar_respuesta_gemini(estado["historial"])
                 estado["ia_actual"] = "gemini"
 
@@ -293,7 +290,6 @@ def hablar():
     if not texto:
         return jsonify({"ok": False, "error": "Texto vacío"}), 400
 
-    # Limpiamos el texto para que Fish Audio no lea símbolos raros
     texto_limpio = texto.replace('*', '').replace('#', '').replace('`', '')[:300]
 
     try:
@@ -304,9 +300,9 @@ def hablar():
         }
         payload = {
             "text": texto_limpio,
-            "reference_id": "7f92f8afb8ec43bf8143f7c3f3158606", # ID de la voz
+            "reference_id": "d1003169cac340a791e75159c7b152cf", # TU NUEVO ID
             "format": "mp3",
-            "model": "s2.1-pro-free" # MODELO GRATUITO ACTIVADO
+            "model": "s2.1-pro-free" # MODELO GRATUITO
         }
         
         response = requests.post(url, json=payload, headers=headers)
