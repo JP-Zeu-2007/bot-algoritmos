@@ -1,7 +1,3 @@
-// ============================================
-// BOT DE ALGORITMOS - LÓGICA DEL CLIENTE (FISH AUDIO)
-// ============================================
-
 const chat = document.getElementById("chat");
 const input = document.getElementById("input-mensaje");
 const btnEnviar = document.getElementById("btn-enviar");
@@ -11,14 +7,13 @@ const mikuSprite = document.getElementById("miku-sprite");
 
 let enviando = false;
 let ultimoMensajeBot = "";
-let audioActual = null; // Variable para guardar el audio de Fish Audio
 
 marked.setOptions({ breaks: true, gfm: true });
 
-// ===== LÓGICA PARA VOLTEAR A MIKU SEGÚN SU POSICIÓN =====
+// ===== LÓGICA PARA DETECTAR LA DIRECCIÓN =====
 let ultimaPosicionX = 0;
 function revisarDireccionMiku() {
-    if (!mikuContenedor) return;
+    if (!mikuContenedor || isDragging) return;
     const rect = mikuContenedor.getBoundingClientRect();
     const xActual = rect.left;
 
@@ -30,79 +25,86 @@ function revisarDireccionMiku() {
         mikuSprite.classList.remove("mirando-izquierda");
         mikuSprite.classList.add("mirando-derecha");
     }
-    
     ultimaPosicionX = xActual;
     requestAnimationFrame(revisarDireccionMiku);
 }
 
-// ===== SISTEMA DE VOZ (SOLO FISH AUDIO) =====
-async function hablarTexto(texto) {
-    const bocadillo = document.getElementById("miku-texto");
+// ===== LÓGICA DE ARRASTRE =====
+let isDragging = false;
+let offsetX, offsetY;
+let tiempoPresionado;
 
-    // Limpiar texto para el bocadillo visual
-    let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 50); 
+mikuContenedor.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    mikuContenedor.style.animation = 'none'; // Detiene el caminar automático
+    mikuSprite.classList.remove("miku-caminando");
+    mikuSprite.classList.add("miku-hablando"); // Usa la pose de frente mientras la arrastras
     
-    if (bocadillo) {
-        bocadillo.textContent = "🎤 " + textoLimpio + "...";
-        bocadillo.style.display = "block";
+    const rect = mikuContenedor.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    
+    // Efecto de brillo mientras se arrastra
+    mikuSprite.style.filter = "drop-shadow(0px 0px 25px #00ffff) brightness(1.3)";
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    
+    let x = e.clientX - offsetX;
+    let y = e.clientY - offsetY;
+
+    const maxX = window.innerWidth - mikuContenedor.offsetWidth;
+    const maxY = window.innerHeight - mikuContenedor.offsetHeight;
+    x = Math.max(0, Math.min(x, maxX));
+    y = Math.max(0, Math.min(y, maxY));
+
+    mikuContenedor.style.left = `${x}px`;
+    mikuContenedor.style.top = `${y}px`;
+    mikuContenedor.style.bottom = 'auto';
+    mikuContenedor.style.right = 'auto';
+});
+
+document.addEventListener('mouseup', () => {
+    if (isDragging) {
+        isDragging = false;
+        // Reanudar caminata
+        mikuContenedor.style.animation = 'patrullar 20s linear infinite alternate';
+        mikuSprite.classList.remove("miku-hablando");
+        mikuSprite.classList.add("miku-caminando");
+        mikuSprite.style.filter = "drop-shadow(0px 0px 10px #00b4d8)";
+        
+        // Posicionar el "left" actual para que no salte al reanudar
+        const rect = mikuContenedor.getBoundingClientRect();
+        mikuContenedor.style.left = rect.left + 'px';
+        mikuContenedor.style.top = 'auto';
+        mikuContenedor.style.bottom = '0';
     }
-    
-    // Cambiar animación a "hablando"
+});
+
+// ===== INTERACCIÓN AL HACER CLIC =====
+function interactuarMiku() {
+    // Miku se detiene y muestra su bocadillo por 3 segundos
+    mikuContenedor.style.animationPlayState = 'paused';
     mikuSprite.classList.remove("miku-caminando");
     mikuSprite.classList.add("miku-hablando");
+    
+    const bocadillo = document.getElementById("miku-texto");
+    if (bocadillo) {
+        bocadillo.textContent = "¡Hola! 🎤";
+        bocadillo.style.display = "block";
+    }
 
-    try {
-        // Petición al backend (Python) para que genere el audio con Fish Audio
-        const res = await fetch("/hablar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ texto: texto })
-        });
-        
-        const data = await res.json();
+    // Efecto de brillo
+    mikuSprite.style.filter = "drop-shadow(0px 0px 25px #00ffff) brightness(1.3)";
 
-        if (data.ok) {
-            // Si hay un audio reproduciéndose, lo detenemos
-            if (audioActual) {
-                audioActual.pause();
-                audioActual.currentTime = 0;
-            }
-
-            // Creamos el nuevo audio desde el Base64 que nos da Python
-            audioActual = new Audio("data:audio/mp3;base64," + data.audio);
-            
-            audioActual.onended = () => {
-                if (bocadillo) bocadillo.style.display = "none";
-                mikuSprite.classList.remove("miku-hablando");
-                mikuSprite.classList.add("miku-caminando");
-            };
-
-            // Reproducir (con aviso por si el navegador lo bloquea)
-            audioActual.play().catch(err => {
-                console.error("Navegador bloqueó el audio (Haz clic en la página):", err);
-                if (bocadillo) bocadillo.textContent = "🔇 Haz clic en la página para activar mi voz.";
-            });
-
-        } else {
-            console.error("Error de Fish Audio:", data.error);
-            if (bocadillo) bocadillo.style.display = "none";
-            mikuSprite.classList.remove("miku-hablando");
-            mikuSprite.classList.add("miku-caminando");
-        }
-    } catch (error) {
-        console.error("Error de red:", error);
+    setTimeout(() => {
         if (bocadillo) bocadillo.style.display = "none";
         mikuSprite.classList.remove("miku-hablando");
         mikuSprite.classList.add("miku-caminando");
-    }
-}
-
-function hablarUltimoMensaje() {
-    if (ultimoMensajeBot) {
-        hablarTexto(ultimoMensajeBot);
-    } else {
-        hablarTexto("Hola, soy Miku. ¡Hazme una pregunta!");
-    }
+        mikuSprite.style.filter = "drop-shadow(0px 0px 10px #00b4d8)";
+        mikuContenedor.style.animationPlayState = 'running';
+    }, 3000);
 }
 
 // ===== LIMPIAR MERMAID =====
@@ -222,6 +224,19 @@ function agregarMensaje(texto, tipo) {
     if (tipo === "bot") {
         div.appendChild(procesarMensaje(texto));
         ultimoMensajeBot = texto; 
+        
+        // Miku se detiene cuando el bot responde (para "leer" visualmente)
+        mikuContenedor.style.animationPlayState = 'paused';
+        mikuSprite.classList.remove("miku-caminando");
+        mikuSprite.classList.add("miku-hablando");
+
+        // Vuelve a caminar después de 4 segundos
+        setTimeout(() => {
+            mikuSprite.classList.remove("miku-hablando");
+            mikuSprite.classList.add("miku-caminando");
+            mikuContenedor.style.animationPlayState = 'running';
+        }, 4000);
+
     } else {
         div.innerHTML = `<span>${texto}</span> <button class="btn btn-sm btn-link text-white p-0 ms-2" onclick="editarMensaje(this.parentElement, '${texto.replace(/'/g, "\\'")}')">✏️</button>`;
     }
@@ -236,12 +251,7 @@ function agregarMensaje(texto, tipo) {
         mermaid.render(`m-${Date.now()}-${idx}`, codigoLimpio)
             .then(res => d.innerHTML = res.svg)
             .catch((error) => {
-                console.error("Error de Mermaid:", error);
-                d.innerHTML = `
-                    <div class="alert alert-warning mt-2" style="font-size: 0.85rem;">
-                        <strong>⚠️ La IA generó un diagrama con errores de sintaxis.</strong><br>
-                        <pre style="margin-top:10px; white-space:pre-wrap;">${codigoLimpio}</pre>
-                    </div>`;
+                d.innerHTML = `<div class="alert alert-warning mt-2" style="font-size: 0.85rem;"><strong>⚠️ Error al dibujar diagrama.</strong></div>`;
             });
     });
 }
@@ -297,7 +307,6 @@ async function enviarMensaje(texto) {
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
-            hablarTexto(data.respuesta); // Llama a Fish Audio
         } else {
             agregarMensaje("⚠️ " + data.error, "error");
         }
