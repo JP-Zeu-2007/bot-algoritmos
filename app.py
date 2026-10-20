@@ -1,5 +1,5 @@
 # ============================================
-# BOT DE ALGORITMOS - BACKEND (Groq + Gemini + Google TTS)
+# BOT DE ALGORITMOS - BACKEND (Groq + Gemini + Fish Audio Free)
 # ============================================
 
 import os
@@ -15,6 +15,7 @@ load_dotenv()
 # ===== API KEYS =====
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+FISH_AUDIO_API_KEY = os.getenv("FISH_AUDIO_API_KEY")
 
 app = Flask(__name__)
 
@@ -179,7 +180,6 @@ def iniciar():
         estado["historial"] = [{"role": "system", "content": PROMPT_MAESTRO}]
         texto = ""
         
-        # Sistema de respaldo
         if estado["ia_actual"] == "gemini":
             try:
                 texto = generar_respuesta_gemini(estado["historial"])
@@ -279,7 +279,7 @@ def chat():
     except Exception as e:
         return jsonify({"ok": False, "error": f"Ambas IAs fallaron: {str(e)}"}), 500
 
-# ===== RUTA PARA VOZ USANDO GOOGLE TRANSLATE =====
+# ===== RUTA PARA VOZ DE MIKU (FISH AUDIO FREE) =====
 @app.route("/hablar", methods=["POST"])
 def hablar():
     data = request.get_json()
@@ -288,28 +288,28 @@ def hablar():
     if not texto:
         return jsonify({"ok": False, "error": "Texto vacío"}), 400
 
-    # Limpiamos el texto para que Google no lea código
-    texto_limpio = texto.replace('*', '').replace('#', '').replace('`', '')[:200]
+    texto_limpio = texto.replace('*', '').replace('#', '').replace('`', '')[:300]
 
     try:
-        url = "https://translate.google.com/translate_tts"
-        params = {
-            "ie": "UTF-8",
-            "q": texto_limpio,
-            "tl": "es",  # Idioma español
-            "client": "tw-ob" # Truco para que funcione sin token
-        }
+        url = "https://api.fish.audio/v1/tts"
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            "Authorization": f"Bearer {FISH_AUDIO_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "text": texto_limpio,
+            "reference_id": "d1003169cac340a791e75159c7b152cf", # TU ID DE VOZ
+            "format": "mp3",
+            "model": "s2.1-pro-free" # EL MODELO GRATUITO DE LA IMAGEN
         }
         
-        response = requests.get(url, params=params, headers=headers)
+        response = requests.post(url, json=payload, headers=headers)
         
         if response.status_code == 200:
             audio_base64 = base64.b64encode(response.content).decode('utf-8')
             return jsonify({"ok": True, "audio": audio_base64})
         else:
-            return jsonify({"ok": False, "error": "Google TTS falló"}), 500
+            return jsonify({"ok": False, "error": f"Fish Audio Error: {response.text}"}), 500
             
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
