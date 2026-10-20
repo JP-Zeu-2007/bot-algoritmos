@@ -1,144 +1,71 @@
-/* ============================================
-   ESTILOS GENERALES Y CHAT
-   ============================================ */
-
 body {
     font-family: 'Outfit', sans-serif;
     background: #050914; 
     margin: 0;
-    overflow: hidden; /* Evita scroll extra por Miku */
-}
-
-#chat { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 15px; 
-}
-
-.mensaje { 
-    max-width: 85%; 
-    padding: 15px 20px; 
-    border-radius: 15px; 
-    font-size: 0.95rem; 
-    line-height: 1.6; 
-    animation: aparecer 0.3s ease; 
-}
-
-@keyframes aparecer { 
-    from { opacity: 0; transform: translateY(10px); } 
-    to { opacity: 1; transform: translateY(0); } 
-}
-
-.mensaje.usuario { 
-    align-self: flex-end; 
-    background: linear-gradient(135deg, #00b4d8, #0077b6); 
-    color: white; 
-    border-bottom-right-radius: 4px; 
-}
-
-.mensaje.bot { 
-    align-self: flex-start; 
-    background: #1e293b; 
-    color: #e2e8f0; 
-    border: 1px solid #334155; 
-    border-bottom-left-radius: 4px; 
-    width: 100%; 
-    max-width: 100%; 
-}
-
-.mensaje.error { 
-    align-self: center; 
-    background: #7f1d1d; 
-    color: #fca5a5; 
-    border: 1px solid #991b1b; 
-}
-
-/* ===== MARKDOWN Y CÓDIGO ===== */
-.mensaje.bot h1, .mensaje.bot h2, .mensaje.bot h3 { 
-    color: #00b4d8; 
-    margin-top: 15px; 
-}
-
-.bloque-codigo { 
-    background: #0f172a; 
-    border-radius: 10px; 
-    margin: 15px 0; 
-    border: 1px solid #334155; 
     overflow: hidden; 
 }
 
-.bloque-codigo .barra-codigo { 
-    background: #1e293b; 
-    padding: 10px 15px; 
-    color: #94a3b8; 
-    font-size: 0.8rem; 
-    display: flex; 
-    justify-content: space-between; 
-}
+#chat { display: flex; flex-direction: column; gap: 15px; }
+.mensaje { max-width: 85%; padding: 15px 20px; border-radius: 15px; font-size: 0.95rem; line-height: 1.6; animation: aparecer 0.3s ease; }
+@keyframes aparecer { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.mensaje.usuario { align-self: flex-end; background: linear-gradient(135deg, #00b4d8, #0077b6); color: white; border-bottom-right-radius: 4px; }
+.mensaje.bot { align-self: flex-start; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-bottom-left-radius: 4px; width: 100%; max-width: 100%; }
+.mensaje.error { align-self: center; background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
 
-.bloque-codigo .barra-codigo button {
-    background: transparent;
-    border: 1px solid #475569;
-    color: #cbd5e1;
-    border-radius: 5px;
-    padding: 2px 8px;
-    cursor: pointer;
-}
-
-.bloque-codigo pre { 
-    margin: 0; 
-    padding: 15px; 
-    color: #e2e8f0; 
-    overflow-x: auto; 
-}
+.mensaje.bot h1, .mensaje.bot h2, .mensaje.bot h3 { color: #00b4d8; margin-top: 15px; }
+.bloque-codigo { background: #0f172a; border-radius: 10px; margin: 15px 0; border: 1px solid #334155; overflow: hidden; }
+.bloque-codigo .barra-codigo { background: #1e293b; padding: 10px 15px; color: #94a3b8; font-size: 0.8rem; display: flex; justify-content: space-between; }
+.bloque-codigo .barra-codigo button { background: transparent; border: 1px solid #475569; color: #cbd5e1; border-radius: 5px; padding: 2px 8px; cursor: pointer; }
+.bloque-codigo pre { margin: 0; padding: 15px; color: #e2e8f0; overflow-x: auto; }
 
 /* ============================================
-   MIKU - ANIMACIÓN, VOLTEO Y FLOTADO
+   MIKU - SPRITE, BRILLO Y ARRASTRE
    ============================================ */
 
-/* Contenedor de Miku */
 #miku-contenedor {
     position: fixed;
     bottom: 0;
     width: 120px;
     height: 120px;
     z-index: 1000;
-    cursor: pointer;
+    cursor: grab;
     user-select: none;
-    /* Animación de ir de izquierda a derecha y volver */
     animation: patrullar 20s linear infinite alternate;
 }
 
-/* Hace que Miku camine de lado a lado */
+#miku-contenedor:active {
+    cursor: grabbing;
+}
+
 @keyframes patrullar {
     0% { left: 0px; }
     100% { left: calc(100% - 120px); }
 }
 
-/* Cuando va hacia la derecha */
-#miku-sprite.mirando-derecha {
-    transform: scaleX(1);
-}
-
-/* Cuando va hacia la izquierda (efecto espejo) */
-#miku-sprite.mirando-izquierda {
-    transform: scaleX(-1);
-}
-
-/* El Sprite en sí (con la animación de flote) */
 #miku-sprite {
     width: 100%;
     height: 100%;
     background-repeat: no-repeat;
     background-size: 400% 100%;
     filter: drop-shadow(0px 0px 10px #00b4d8);
-    transition: transform 0.1s;
+    transition: transform 0.2s, filter 0.2s;
 }
 
-/* Animación de caminar (sprites) */
-.miku-caminando {
+/* Brillo más fuerte al pasar el mouse o tocarla */
+#miku-contenedor:hover #miku-sprite {
+    filter: drop-shadow(0px 0px 20px #00ffff) brightness(1.2);
+}
+
+.miku-caminando.mirando-derecha {
     background-image: url('/static/miku_caminar.png');
     animation: caminar 0.6s steps(1) infinite;
+    transform: scaleX(1);
+}
+
+.miku-caminando.mirando-izquierda {
+    background-image: url('/static/miku_caminar.png');
+    animation: caminar 0.6s steps(1) infinite;
+    transform: scaleX(-1);
 }
 
 @keyframes caminar {
@@ -149,10 +76,11 @@ body {
     100% { background-position: 0% 0%; }
 }
 
-/* Animación de hablar (sprites de boca) */
+/* Estado cuando habla (se queda quieta) */
 .miku-hablando {
     background-image: url('/static/miku_hablar.png');
     animation: hablar-boca 0.3s steps(1) infinite;
+    animation-play-state: running;
 }
 
 @keyframes hablar-boca {
@@ -161,7 +89,6 @@ body {
     100% { background-position: 0% 0%; }
 }
 
-/* El bocadillo de diálogo cuando habla */
 .miku-bocadillo {
     position: absolute;
     bottom: 110%;
@@ -174,17 +101,4 @@ body {
     font-size: 0.8rem;
     width: 200px;
     box-shadow: 0 4px 15px rgba(0, 180, 216, 0.5);
-}
-
-/* ============================================
-   BOTONES DE LA INTERFAZ
-   ============================================ */
-
-#btn-groq, #btn-gemini {
-    transition: all 0.2s;
-}
-
-#btn-groq:hover, #btn-gemini:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(255,255,255,0.1);
 }
