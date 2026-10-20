@@ -11,35 +11,29 @@ const mikuSprite = document.getElementById("miku-sprite");
 
 let enviando = false;
 let ultimoMensajeBot = "";
+let audioActual = null; // Guarda el audio si se reproduce
+
+marked.setOptions({ breaks: true, gfm: true });
 
 // ===== LÓGICA PARA VOLTEAR A MIKU SEGÚN SU POSICIÓN =====
-// Esta función revisa constantemente dónde está Miku en la pantalla
 let ultimaPosicionX = 0;
 function revisarDireccionMiku() {
+    if (!mikuContenedor) return;
     const rect = mikuContenedor.getBoundingClientRect();
     const xActual = rect.left;
 
-    // Si se está moviendo hacia la izquierda (xActual es menor a la anterior)
     if (xActual < ultimaPosicionX) {
         mikuSprite.classList.remove("mirando-derecha");
         mikuSprite.classList.add("mirando-izquierda");
     } 
-    // Si se está moviendo hacia la derecha (xActual es mayor)
     else if (xActual > ultimaPosicionX) {
         mikuSprite.classList.remove("mirando-izquierda");
         mikuSprite.classList.add("mirando-derecha");
     }
     
     ultimaPosicionX = xActual;
-    requestAnimationFrame(revisarDireccionMiku); // Bucle infinito para revisar
+    requestAnimationFrame(revisarDireccionMiku);
 }
-
-// Iniciamos la revisión cuando carga la página
-window.addEventListener('load', () => {
-    revisarDireccionMiku();
-    iniciarChat(); // <-- El inicio del chat se queda aquí
-});
-
 
 // ===== SISTEMA DE VOZ NATIVA =====
 function hablarTexto(texto) {
@@ -54,7 +48,6 @@ function hablarTexto(texto) {
         bocadillo.style.display = "block";
     }
     
-    // Quitamos el "caminando" para que no interfiera con el habla
     mikuSprite.classList.remove("miku-caminando");
     mikuSprite.classList.add("miku-hablando");
 
@@ -80,13 +73,18 @@ function hablarUltimoMensaje() {
     }
 }
 
-// ===== LIMPIAR MERMAID =====
+// ===== LIMPIAR MERMAID (VERSIÓN BLINDADA) =====
 function limpiarMermaid(codigo) {
-    let limpio = codigo.replace(/```mermaid/g, "").replace(/```/g, "").trim();
-    const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram"];
+    let limpio = codigo;
+    limpio = limpio.replace(/```mermaid/gi, "").replace(/```/g, "");
+    limpio = limpio.replace(/`/g, "").trim();
+    
+    const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey"];
     for (let palabra of palabrasClave) {
         let idx = limpio.indexOf(palabra);
-        if (idx !== -1) return limpio.substring(idx);
+        if (idx !== -1) {
+            return limpio.substring(idx);
+        }
     }
     return limpio;
 }
@@ -203,13 +201,22 @@ function agregarMensaje(texto, tipo) {
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 
+    // Renderizar Mermaid con manejo de errores mejorado
     const diagramas = div.querySelectorAll(".mermaid");
     diagramas.forEach((d, idx) => {
         let codigoLimpio = limpiarMermaid(d.textContent);
         if (!codigoLimpio) return;
+        
         mermaid.render(`m-${Date.now()}-${idx}`, codigoLimpio)
             .then(res => d.innerHTML = res.svg)
-            .catch(() => d.innerHTML = "<div class='alert alert-warning mt-2'>⚠️ Error al dibujar diagrama.</div>");
+            .catch((error) => {
+                console.error("Error de Mermaid:", error);
+                d.innerHTML = `
+                    <div class="alert alert-warning mt-2" style="font-size: 0.85rem;">
+                        <strong>⚠️ La IA generó un diagrama con errores de sintaxis.</strong><br>
+                        <pre style="margin-top:10px; white-space:pre-wrap;">${codigoLimpio}</pre>
+                    </div>`;
+            });
     });
 }
 
@@ -264,7 +271,7 @@ async function enviarMensaje(texto) {
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
-            hablarTexto(data.respuesta);
+            hablarTexto(data.respuesta); // Activa la voz de Miku
         } else {
             agregarMensaje("⚠️ " + data.error, "error");
         }
@@ -325,4 +332,10 @@ btnReiniciar.addEventListener("click", () => {
     if (confirm("¿Reiniciar el chat? Se perderá el problema actual.")) {
         iniciarChat();
     }
+});
+
+// ===== INICIALIZACIÓN =====
+window.addEventListener('load', () => {
+    revisarDireccionMiku();
+    iniciarChat();
 });
