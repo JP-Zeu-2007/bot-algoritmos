@@ -1,3 +1,7 @@
+// ============================================
+// BOT DE ALGORITMOS - LÓGICA DEL CLIENTE
+// ============================================
+
 const chat = document.getElementById("chat");
 const input = document.getElementById("input-mensaje");
 const btnEnviar = document.getElementById("btn-enviar");
@@ -7,13 +11,14 @@ const mikuSprite = document.getElementById("miku-sprite");
 
 let enviando = false;
 let ultimoMensajeBot = "";
+let audioActual = null;
 
 marked.setOptions({ breaks: true, gfm: true });
 
-// ===== LÓGICA PARA DETECTAR LA DIRECCIÓN =====
+// ===== LÓGICA PARA VOLTEAR A MIKU =====
 let ultimaPosicionX = 0;
 function revisarDireccionMiku() {
-    if (!mikuContenedor || isDragging) return;
+    if (!mikuContenedor) return;
     const rect = mikuContenedor.getBoundingClientRect();
     const xActual = rect.left;
 
@@ -29,82 +34,54 @@ function revisarDireccionMiku() {
     requestAnimationFrame(revisarDireccionMiku);
 }
 
-// ===== LÓGICA DE ARRASTRE =====
-let isDragging = false;
-let offsetX, offsetY;
-let tiempoPresionado;
-
-mikuContenedor.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    mikuContenedor.style.animation = 'none'; // Detiene el caminar automático
-    mikuSprite.classList.remove("miku-caminando");
-    mikuSprite.classList.add("miku-hablando"); // Usa la pose de frente mientras la arrastras
-    
-    const rect = mikuContenedor.getBoundingClientRect();
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
-    
-    // Efecto de brillo mientras se arrastra
-    mikuSprite.style.filter = "drop-shadow(0px 0px 25px #00ffff) brightness(1.3)";
-});
-
-document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    
-    let x = e.clientX - offsetX;
-    let y = e.clientY - offsetY;
-
-    const maxX = window.innerWidth - mikuContenedor.offsetWidth;
-    const maxY = window.innerHeight - mikuContenedor.offsetHeight;
-    x = Math.max(0, Math.min(x, maxX));
-    y = Math.max(0, Math.min(y, maxY));
-
-    mikuContenedor.style.left = `${x}px`;
-    mikuContenedor.style.top = `${y}px`;
-    mikuContenedor.style.bottom = 'auto';
-    mikuContenedor.style.right = 'auto';
-});
-
-document.addEventListener('mouseup', () => {
-    if (isDragging) {
-        isDragging = false;
-        // Reanudar caminata
-        mikuContenedor.style.animation = 'patrullar 20s linear infinite alternate';
-        mikuSprite.classList.remove("miku-hablando");
-        mikuSprite.classList.add("miku-caminando");
-        mikuSprite.style.filter = "drop-shadow(0px 0px 10px #00b4d8)";
-        
-        // Posicionar el "left" actual para que no salte al reanudar
-        const rect = mikuContenedor.getBoundingClientRect();
-        mikuContenedor.style.left = rect.left + 'px';
-        mikuContenedor.style.top = 'auto';
-        mikuContenedor.style.bottom = '0';
-    }
-});
-
-// ===== INTERACCIÓN AL HACER CLIC =====
-function interactuarMiku() {
-    // Miku se detiene y muestra su bocadillo por 3 segundos
-    mikuContenedor.style.animationPlayState = 'paused';
-    mikuSprite.classList.remove("miku-caminando");
-    mikuSprite.classList.add("miku-hablando");
-    
+// ===== SISTEMA DE VOZ (FISH AUDIO) =====
+async function hablarTexto(texto) {
     const bocadillo = document.getElementById("miku-texto");
+    let textoLimpio = texto.replace(/[`*#_]/g, '').substring(0, 50); 
+    
     if (bocadillo) {
-        bocadillo.textContent = "¡Hola! 🎤";
+        bocadillo.textContent = "🎤 " + textoLimpio + "...";
         bocadillo.style.display = "block";
     }
+    
+    mikuSprite.classList.remove("miku-caminando");
+    mikuSprite.classList.add("miku-hablando");
 
-    // Efecto de brillo
-    mikuSprite.style.filter = "drop-shadow(0px 0px 25px #00ffff) brightness(1.3)";
+    try {
+        const res = await fetch("/hablar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ texto: texto })
+        });
+        const data = await res.json();
 
-    setTimeout(() => {
-        if (bocadillo) bocadillo.style.display = "none";
+        if (data.ok) {
+            if (audioActual) {
+                audioActual.pause();
+                audioActual.currentTime = 0;
+            }
+            audioActual = new Audio("data:audio/mp3;base64," + data.audio);
+            audioActual.onended = () => {
+                if (bocadillo) bocadillo.style.display = "none";
+                mikuSprite.classList.remove("miku-hablando");
+                mikuSprite.classList.add("miku-caminando");
+            };
+            audioActual.play().catch(err => {
+                console.error("Audio bloqueado por el navegador.", err);
+                if (bocadillo) bocadillo.textContent = "🔇 Haz clic en la página para activar mi voz.";
+            });
+        } else {
+            mikuSprite.classList.remove("miku-hablando");
+            mikuSprite.classList.add("miku-caminando");
+        }
+    } catch (error) {
         mikuSprite.classList.remove("miku-hablando");
         mikuSprite.classList.add("miku-caminando");
-        mikuSprite.style.filter = "drop-shadow(0px 0px 10px #00b4d8)";
-        mikuContenedor.style.animationPlayState = 'running';
-    }, 3000);
+    }
+}
+
+function hablarUltimoMensaje() {
+    hablarTexto(ultimoMensajeBot || "Hola, soy Miku. ¡Hazme una pregunta!");
 }
 
 // ===== LIMPIAR MERMAID =====
@@ -160,17 +137,66 @@ function generarBotonesOpciones(texto) {
     return null;
 }
 
-// ===== CREAR BLOQUE DE CÓDIGO =====
+// ===== LÓGICA DE SIMULACIÓN (CORRIDA MENTAL) =====
+function simularCodigo(codigoOriginal, bloqueOriginal) {
+    if (bloqueOriginal.querySelector(".consola-simulacion")) return;
+
+    const lineas = codigoOriginal.split("\n");
+    const consola = document.createElement("div");
+    consola.classList.add("consola-simulacion");
+    
+    bloqueOriginal.appendChild(consola);
+
+    let i = 0;
+    const intervalo = setInterval(() => {
+        if (i >= lineas.length) {
+            clearInterval(intervalo);
+            consola.innerHTML += "<br>✅ Ejecución terminada.";
+            return;
+        }
+
+        const lineaActual = lineas[i];
+        const partes = lineaActual.split("//");
+        const codigoPuro = partes[0] || "";
+        const comentario = partes[1] ? ` <span style="color: #ffb703;">← ${partes[1].trim()}</span>` : "";
+
+        if (codigoPuro.trim() !== "") {
+            consola.innerHTML += `<div style="opacity: 0; animation: aparecerLinea 0.5s forwards;">> ${codigoPuro}${comentario}</div>`;
+            consola.scrollTop = consola.scrollHeight;
+        }
+        i++;
+    }, 2000); // 2 segundos por línea
+}
+
+// ===== CREAR BLOQUE DE CÓDIGO CON SIMULACIÓN =====
 function crearBloqueCodigo(codigo, lenguaje) {
     const bloque = document.createElement("div");
     bloque.classList.add("bloque-codigo");
-    bloque.innerHTML = `
-        <div class="barra-codigo">
-            <span>${lenguaje || 'código'}</span>
+    
+    const barra = document.createElement("div");
+    barra.classList.add("barra-codigo");
+    barra.innerHTML = `
+        <span>${lenguaje || 'código'}</span>
+        <div>
+            ${lenguaje === 'text' || lenguaje === 'pseudocodigo' ? 
+              `<button class="btn-simular" style="margin-right: 5px; background: #00b4d8; color: white; border: none; border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 0.75rem;">▶️ Simular</button>` : ''}
             <button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)">📋 Copiar</button>
         </div>
-        <pre><code>${codigo.replace(/</g, "&lt;")}</code></pre>
     `;
+
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.innerHTML = codigo.replace(/</g, "&lt;");
+    pre.appendChild(code);
+
+    bloque.appendChild(barra);
+    bloque.appendChild(pre);
+
+    const btnSimular = barra.querySelector(".btn-simular");
+    if (btnSimular) {
+        btnSimular.onclick = () => simularCodigo(codigo, bloque);
+    }
+
     return bloque;
 }
 
@@ -224,19 +250,6 @@ function agregarMensaje(texto, tipo) {
     if (tipo === "bot") {
         div.appendChild(procesarMensaje(texto));
         ultimoMensajeBot = texto; 
-        
-        // Miku se detiene cuando el bot responde (para "leer" visualmente)
-        mikuContenedor.style.animationPlayState = 'paused';
-        mikuSprite.classList.remove("miku-caminando");
-        mikuSprite.classList.add("miku-hablando");
-
-        // Vuelve a caminar después de 4 segundos
-        setTimeout(() => {
-            mikuSprite.classList.remove("miku-hablando");
-            mikuSprite.classList.add("miku-caminando");
-            mikuContenedor.style.animationPlayState = 'running';
-        }, 4000);
-
     } else {
         div.innerHTML = `<span>${texto}</span> <button class="btn btn-sm btn-link text-white p-0 ms-2" onclick="editarMensaje(this.parentElement, '${texto.replace(/'/g, "\\'")}')">✏️</button>`;
     }
@@ -251,7 +264,8 @@ function agregarMensaje(texto, tipo) {
         mermaid.render(`m-${Date.now()}-${idx}`, codigoLimpio)
             .then(res => d.innerHTML = res.svg)
             .catch((error) => {
-                d.innerHTML = `<div class="alert alert-warning mt-2" style="font-size: 0.85rem;"><strong>⚠️ Error al dibujar diagrama.</strong></div>`;
+                console.error("Error de Mermaid:", error);
+                d.innerHTML = `<div class="alert alert-warning mt-2" style="font-size: 0.85rem;"><strong>⚠️ Diagrama con errores de sintaxis.</strong><pre>${codigoLimpio}</pre></div>`;
             });
     });
 }
@@ -307,6 +321,7 @@ async function enviarMensaje(texto) {
 
         if (data.ok) {
             agregarMensaje(data.respuesta, "bot");
+            hablarTexto(data.respuesta); 
         } else {
             agregarMensaje("⚠️ " + data.error, "error");
         }
@@ -369,7 +384,6 @@ btnReiniciar.addEventListener("click", () => {
     }
 });
 
-// ===== INICIALIZACIÓN =====
 window.addEventListener('load', () => {
     revisarDireccionMiku();
     iniciarChat();
