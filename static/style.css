@@ -102,3 +102,25 @@ body {
     width: 200px;
     box-shadow: 0 4px 15px rgba(0, 180, 216, 0.5);
 }
+
+
+/* ============================================
+   CONSOLA DE SIMULACIÓN (EFECTO TERMINAL)
+   ============================================ */
+.consola-simulacion {
+    background: #000;
+    color: #0f0; /* Verde neón tipo Matrix */
+    padding: 15px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.85rem;
+    border-radius: 5px;
+    margin-top: 10px;
+    border: 1px solid #333;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+@keyframes aparecerLinea {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
