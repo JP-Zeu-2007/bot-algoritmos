@@ -84,15 +84,11 @@ function hablarUltimoMensaje() {
     hablarTexto(ultimoMensajeBot || "Hola, soy Miku. ¡Hazme una pregunta!");
 }
 
-// ===== LIMPIAR MERMAID (VERSIÓN BLINDADA) =====
+// ===== LIMPIAR MERMAID =====
 function limpiarMermaid(codigo) {
     let limpio = codigo;
-    
-    // Quitar bloques ```mermaid
     limpio = limpio.replace(/```mermaid/gi, "").replace(/```/g, "");
     limpio = limpio.replace(/`/g, "").trim();
-    
-    // Buscar el inicio real del diagrama
     const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey"];
     let inicioEncontrado = false;
     for (let palabra of palabrasClave) {
@@ -103,25 +99,15 @@ function limpiarMermaid(codigo) {
             break;
         }
     }
-
     if (!inicioEncontrado) return "";
-
-    // Limpiar errores comunes de la IA en Mermaid
-    // 1. Quitar puntos y comas al final de las líneas de flechas
     limpio = limpio.replace(/-->/g, "-->").replace(/-->/g, "-->");
-    
-    // 2. Reemplazar comillas simples por dobles en los rombos { } para que no falle
     limpio = limpio.replace(/\{([^}]+)\}/g, function(match, p1) {
-        let texto = p1.replace(/"/g, "").trim();
-        return `{"${texto}"}`;
+        return `{"${p1.replace(/"/g, "")}"}`;
     });
-    
-    // 3. Arreglar textos entre corchetes que tengan comillas sueltas
     limpio = limpio.replace(/\[([^\]]+)\]/g, function(match, p1) {
         if (p1.includes('"')) return match;
         return `["${p1}"]`;
     });
-
     return limpio;
 }
 
@@ -166,7 +152,7 @@ function generarBotonesOpciones(texto) {
     return null;
 }
 
-// ===== LÓGICA DE SIMULACIÓN INTERACTIVA =====
+// ===== LÓGICA DE SIMULACIÓN =====
 function simularCodigo(codigoOriginal, bloqueOriginal) {
     if (bloqueOriginal.querySelector(".consola-simulacion")) return;
 
@@ -233,30 +219,49 @@ function simularCodigo(codigoOriginal, bloqueOriginal) {
     actualizarPantalla();
 }
 
-// ===== CREAR BLOQUE DE CÓDIGO =====
+// ===== CREAR BLOQUE DE CÓDIGO (CON BOTÓN COPIAR ARREGLADO) =====
 function crearBloqueCodigo(codigo, lenguaje) {
     const bloque = document.createElement("div");
     bloque.classList.add("bloque-codigo");
     
     const barra = document.createElement("div");
     barra.classList.add("barra-codigo");
+    
+    // Botones
+    let botonesHtml = '';
+    if (lenguaje === 'text' || lenguaje === 'pseudocodigo') {
+        botonesHtml += `<button class="btn-simular" style="margin-right: 5px; background: #00b4d8; color: white; border: none; border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 0.75rem;">▶️ Simular</button>`;
+    }
+    // Usamos un identificador único para el botón de copiar
+    const idBoton = `btn-copiar-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    botonesHtml += `<button id="${idBoton}" style="background: transparent; border: 1px solid #475569; color: #cbd5e1; border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 0.75rem;">📋 Copiar</button>`;
+
     barra.innerHTML = `
         <span>${lenguaje || 'código'}</span>
-        <div>
-            ${lenguaje === 'text' || lenguaje === 'pseudocodigo' ? 
-              `<button class="btn-simular" style="margin-right: 5px; background: #00b4d8; color: white; border: none; border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 0.75rem;">▶️ Simular Paso a Paso</button>` : ''}
-            <button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)">📋 Copiar</button>
-        </div>
+        <div>${botonesHtml}</div>
     `;
 
     const pre = document.createElement("pre");
     const code = document.createElement("code");
-    code.innerHTML = codigo.replace(/</g, "&lt;");
+    // Escapamos el código para evitar inyecciones HTML
+    code.innerHTML = codigo.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     pre.appendChild(code);
 
     bloque.appendChild(barra);
     bloque.appendChild(pre);
 
+    // Asignar evento copiar
+    const btnCopiar = barra.querySelector(`#${idBoton}`);
+    if (btnCopiar) {
+        btnCopiar.onclick = () => {
+            navigator.clipboard.writeText(codigo).then(() => {
+                btnCopiar.textContent = "✅ Copiado";
+                setTimeout(() => btnCopiar.textContent = "📋 Copiar", 2000);
+            });
+        };
+    }
+
+    // Asignar evento simular
     const btnSimular = barra.querySelector(".btn-simular");
     if (btnSimular) {
         btnSimular.onclick = () => simularCodigo(codigo, bloque);
@@ -270,7 +275,6 @@ function procesarMensaje(textoOriginal) {
     const contenedor = document.createElement("div");
     let texto = textoOriginal;
     
-    // Evitar menús duplicados
     const menuTexto = "[1] TODOS LOS PROCESOS Y PASOS JUNTOS";
     if (texto.split(menuTexto).length > 2) {
         const primerMenu = texto.indexOf(menuTexto);
