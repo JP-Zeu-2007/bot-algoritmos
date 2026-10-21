@@ -1,5 +1,5 @@
 # ============================================
-# BOT DE ALGORITMOS - BACKEND (Groq + Gemini + Fish Audio Free)
+# BOT DE ALGORITMOS - BACKEND (Groq + Gemini + Fish Audio)
 # ============================================
 
 import os
@@ -45,7 +45,7 @@ Las 7 etapas oficiales son:
 3. Pseudocódigo
 4. Diagrama de Flujo (Mermaid)
 5. Codificación
-6. Validación y Pruebas
+6. Validación y Pruebas (Simulación)
 7. Documentación
 
 ==================================================
@@ -117,7 +117,25 @@ flowchart TD
 Reglas: Usa flowchart TD al inicio. Identificadores únicos (A, B, C...). Código sintácticamente válido.
 
 ==================================================
-6. REGLA DE RECHAZO (ESTRICTO)
+6. SIMULACIÓN DE EJECUCIÓN PASO A PASO (ETAPA 6)
+==================================================
+Para la Etapa 6, en lugar de solo escribir texto, DEBES generar un bloque de código usando el lenguaje "text".
+En cada línea del código, agrega un comentario usando "//" explicando qué ocurre en esa parte de la ejecución.
+El frontend convertirá esto en una simulación visual.
+
+Ejemplo del formato EXACTO que debes generar:
+
+```text
+INICIO
+  leer nota1        // El usuario ingresa 8
+  leer nota2        // El usuario ingresa 9
+  promedio = (nota1 + nota2) / 2  // Calcula: (8 + 9) / 2 = 8.5
+  imprimir promedio // La pantalla muestra: 8.5
+FIN
+```
+
+==================================================
+7. REGLA DE RECHAZO (ESTRICTO)
 ==================================================
 Si el usuario pide algo totalmente ajeno a la programación (chismes, recetas, política), responde con:
 "[FUERA DE CONTEXTO] Lo siento, solo puedo ayudarte a resolver problemas algorítmicos."
@@ -139,7 +157,7 @@ estado = {
 def generar_respuesta_groq(historial):
     client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
     respuesta = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
+        model="openai/gpt-oss-20b", # Recomendado usar el 20b si el 120b da error de cuota
         messages=historial
     )
     return respuesta.choices[0].message.content
@@ -298,9 +316,9 @@ def hablar():
         }
         payload = {
             "text": texto_limpio,
-            "reference_id": "d1003169cac340a791e75159c7b152cf", # TU ID DE VOZ
+            "reference_id": "d1003169cac340a791e75159c7b152cf", 
             "format": "mp3",
-            "model": "s2.1-pro-free" # EL MODELO GRATUITO DE LA IMAGEN
+            "model": "s2.1-pro-free" 
         }
         
         response = requests.post(url, json=payload, headers=headers)
