@@ -84,15 +84,44 @@ function hablarUltimoMensaje() {
     hablarTexto(ultimoMensajeBot || "Hola, soy Miku. ¡Hazme una pregunta!");
 }
 
-// ===== LIMPIAR MERMAID =====
+// ===== LIMPIAR MERMAID (VERSIÓN BLINDADA) =====
 function limpiarMermaid(codigo) {
-    let limpio = codigo.replace(/```mermaid/gi, "").replace(/```/g, "");
+    let limpio = codigo;
+    
+    // Quitar bloques ```mermaid
+    limpio = limpio.replace(/```mermaid/gi, "").replace(/```/g, "");
     limpio = limpio.replace(/`/g, "").trim();
+    
+    // Buscar el inicio real del diagrama
     const palabrasClave = ["flowchart", "graph", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey"];
+    let inicioEncontrado = false;
     for (let palabra of palabrasClave) {
         let idx = limpio.indexOf(palabra);
-        if (idx !== -1) return limpio.substring(idx);
+        if (idx !== -1) {
+            limpio = limpio.substring(idx);
+            inicioEncontrado = true;
+            break;
+        }
     }
+
+    if (!inicioEncontrado) return "";
+
+    // Limpiar errores comunes de la IA en Mermaid
+    // 1. Quitar puntos y comas al final de las líneas de flechas
+    limpio = limpio.replace(/-->/g, "-->").replace(/-->/g, "-->");
+    
+    // 2. Reemplazar comillas simples por dobles en los rombos { } para que no falle
+    limpio = limpio.replace(/\{([^}]+)\}/g, function(match, p1) {
+        let texto = p1.replace(/"/g, "").trim();
+        return `{"${texto}"}`;
+    });
+    
+    // 3. Arreglar textos entre corchetes que tengan comillas sueltas
+    limpio = limpio.replace(/\[([^\]]+)\]/g, function(match, p1) {
+        if (p1.includes('"')) return match;
+        return `["${p1}"]`;
+    });
+
     return limpio;
 }
 
@@ -137,49 +166,74 @@ function generarBotonesOpciones(texto) {
     return null;
 }
 
-// ===== LÓGICA DE SIMULACIÓN (CORRIDA MENTAL MEJORADA) =====
+// ===== LÓGICA DE SIMULACIÓN INTERACTIVA =====
 function simularCodigo(codigoOriginal, bloqueOriginal) {
     if (bloqueOriginal.querySelector(".consola-simulacion")) return;
 
-    const lineas = codigoOriginal.split("\n");
+    const lineas = codigoOriginal.split("\n").filter(l => l.trim() !== "");
+    let pasoActual = 0;
+
     const consola = document.createElement("div");
     consola.classList.add("consola-simulacion");
     
+    const controles = document.createElement("div");
+    controles.style.display = "flex";
+    controles.style.justifyContent = "space-between";
+    controles.style.marginBottom = "10px";
+    
+    const btnAtras = document.createElement("button");
+    btnAtras.className = "btn btn-sm btn-outline-warning";
+    btnAtras.textContent = "⬅️ Atrás";
+    
+    const btnAdelante = document.createElement("button");
+    btnAdelante.className = "btn btn-sm btn-outline-success";
+    btnAdelante.textContent = "Adelante ➡️";
+    
+    controles.appendChild(btnAtras);
+    controles.appendChild(btnAdelante);
+
+    const displayLinea = document.createElement("div");
+    displayLinea.style.minHeight = "80px";
+    
+    consola.appendChild(controles);
+    consola.appendChild(displayLinea);
     bloqueOriginal.appendChild(consola);
 
-    let i = 0;
-    const intervalo = setInterval(() => {
-        if (i >= lineas.length) {
-            clearInterval(intervalo);
-            consola.innerHTML += `<br><span style="color: #00ffff;">✅ Ejecución terminada.</span>`;
-            return;
-        }
-
-        const lineaActual = lineas[i];
-        
-        // Separar el código del comentario (//)
+    const actualizarPantalla = () => {
+        const lineaActual = lineas[pasoActual];
         const partes = lineaActual.split("//");
         const codigoPuro = partes[0] || "";
         const comentario = partes[1] ? partes[1].trim() : "";
 
-        // Si la línea no está vacía
-        if (codigoPuro.trim() !== "") {
-            let htmlLinea = `> ${codigoPuro}`;
-            
-            // Agregar comentario en amarillo si existe
-            if (comentario) {
-                htmlLinea += ` <span class="comentario">← ${comentario}</span>`;
-            }
-
-            consola.innerHTML += `<div style="opacity: 0; animation: aparecerLinea 0.5s forwards; margin-bottom: 5px;">${htmlLinea}</div>`;
-            consola.scrollTop = consola.scrollHeight;
+        let html = `<div style="color: #00ff00;">> ${codigoPuro}</div>`;
+        if (comentario) {
+            html += `<div class="comentario" style="margin-top: 5px;">← ${comentario}</div>`;
         }
         
-        i++;
-    }, 2000); // 2 segundos por línea
+        displayLinea.innerHTML = html;
+        
+        btnAtras.disabled = pasoActual === 0;
+        btnAdelante.disabled = pasoActual === lineas.length - 1;
+    };
+
+    btnAdelante.onclick = () => {
+        if (pasoActual < lineas.length - 1) {
+            pasoActual++;
+            actualizarPantalla();
+        }
+    };
+
+    btnAtras.onclick = () => {
+        if (pasoActual > 0) {
+            pasoActual--;
+            actualizarPantalla();
+        }
+    };
+
+    actualizarPantalla();
 }
 
-// ===== CREAR BLOQUE DE CÓDIGO CON SIMULACIÓN =====
+// ===== CREAR BLOQUE DE CÓDIGO =====
 function crearBloqueCodigo(codigo, lenguaje) {
     const bloque = document.createElement("div");
     bloque.classList.add("bloque-codigo");
@@ -190,7 +244,7 @@ function crearBloqueCodigo(codigo, lenguaje) {
         <span>${lenguaje || 'código'}</span>
         <div>
             ${lenguaje === 'text' || lenguaje === 'pseudocodigo' ? 
-              `<button class="btn-simular" style="margin-right: 5px; background: #00b4d8; color: white; border: none; border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 0.75rem;">▶️ Simular</button>` : ''}
+              `<button class="btn-simular" style="margin-right: 5px; background: #00b4d8; color: white; border: none; border-radius: 5px; padding: 2px 8px; cursor: pointer; font-size: 0.75rem;">▶️ Simular Paso a Paso</button>` : ''}
             <button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)">📋 Copiar</button>
         </div>
     `;
@@ -216,6 +270,13 @@ function procesarMensaje(textoOriginal) {
     const contenedor = document.createElement("div");
     let texto = textoOriginal;
     
+    // Evitar menús duplicados
+    const menuTexto = "[1] TODOS LOS PROCESOS Y PASOS JUNTOS";
+    if (texto.split(menuTexto).length > 2) {
+        const primerMenu = texto.indexOf(menuTexto);
+        texto = texto.substring(0, primerMenu + 150) + "\n\n(Selecciona una opción)";
+    }
+
     const preguntaLenguaje = "¿En qué lenguaje de programación deseas el código?";
     const regexDuplicado = new RegExp(`(${preguntaLenguaje}[\\s\\S]*?)${preguntaLenguaje}`, 'g');
     texto = texto.replace(regexDuplicado, preguntaLenguaje);
