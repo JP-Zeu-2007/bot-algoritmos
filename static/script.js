@@ -137,7 +137,7 @@ function generarBotonesOpciones(texto) {
     return null;
 }
 
-// ===== LÓGICA DE SIMULACIÓN (CORRIDA MENTAL) =====
+// ===== LÓGICA DE SIMULACIÓN (CORRIDA MENTAL MEJORADA) =====
 function simularCodigo(codigoOriginal, bloqueOriginal) {
     if (bloqueOriginal.querySelector(".consola-simulacion")) return;
 
@@ -151,19 +151,30 @@ function simularCodigo(codigoOriginal, bloqueOriginal) {
     const intervalo = setInterval(() => {
         if (i >= lineas.length) {
             clearInterval(intervalo);
-            consola.innerHTML += "<br>✅ Ejecución terminada.";
+            consola.innerHTML += `<br><span style="color: #00ffff;">✅ Ejecución terminada.</span>`;
             return;
         }
 
         const lineaActual = lineas[i];
+        
+        // Separar el código del comentario (//)
         const partes = lineaActual.split("//");
         const codigoPuro = partes[0] || "";
-        const comentario = partes[1] ? ` <span style="color: #ffb703;">← ${partes[1].trim()}</span>` : "";
+        const comentario = partes[1] ? partes[1].trim() : "";
 
+        // Si la línea no está vacía
         if (codigoPuro.trim() !== "") {
-            consola.innerHTML += `<div style="opacity: 0; animation: aparecerLinea 0.5s forwards;">> ${codigoPuro}${comentario}</div>`;
+            let htmlLinea = `> ${codigoPuro}`;
+            
+            // Agregar comentario en amarillo si existe
+            if (comentario) {
+                htmlLinea += ` <span class="comentario">← ${comentario}</span>`;
+            }
+
+            consola.innerHTML += `<div style="opacity: 0; animation: aparecerLinea 0.5s forwards; margin-bottom: 5px;">${htmlLinea}</div>`;
             consola.scrollTop = consola.scrollHeight;
         }
+        
         i++;
     }, 2000); // 2 segundos por línea
 }
@@ -384,6 +395,7 @@ btnReiniciar.addEventListener("click", () => {
     }
 });
 
+// ===== INICIALIZACIÓN =====
 window.addEventListener('load', () => {
     revisarDireccionMiku();
     iniciarChat();
