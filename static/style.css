@@ -105,19 +105,27 @@ body {
 
 
 /* ============================================
-   CONSOLA DE SIMULACIÓN (EFECTO TERMINAL)
+   CONSOLA DE SIMULACIÓN (EFECTO TERMINAL MEJORADO)
    ============================================ */
 .consola-simulacion {
-    background: #000;
-    color: #0f0; /* Verde neón tipo Matrix */
+    background: #050505;
+    color: #00ff00; /* Verde Matrix */
     padding: 15px;
-    font-family: 'Consolas', monospace;
-    font-size: 0.85rem;
-    border-radius: 5px;
-    margin-top: 10px;
-    border: 1px solid #333;
-    max-height: 250px;
-    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1rem; /* Letra más grande */
+    border-radius: 8px;
+    margin-top: 15px;
+    border: 1px solid #00ff00;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.2); /* Brillo neón */
+    height: 180px; /* Altura fija para que no se haga gigante */
+    overflow-y: auto; /* Scroll si hay muchas líneas */
+    line-height: 1.6;
+}
+
+/* El texto de los comentarios explicativos en amarillo */
+.consola-simulacion .comentario {
+    color: #ffb703;
+    font-style: italic;
 }
 
 @keyframes aparecerLinea {
